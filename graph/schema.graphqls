@@ -1,0 +1,809 @@
+scalar DateTime
+  @specifiedBy(
+    url: "https://scalars.graphql.org/andrewimario/graphql-go-datetime.html"
+  )
+
+# ---------- User domain (owner of User/AppRole) ----------
+type AppRole {
+  id: ID!
+  name: String!
+  description: String
+  createdAt: String!
+  createdBy: String
+  createdAction: String
+  updatedAt: String
+  updatedBy: String
+  updatedAction: String
+}
+
+type User {
+  id: ID!
+  email: String!
+  isActive: Boolean!
+  lastLogin: String
+  appRoles: [AppRole!]!
+  isValidated: Boolean!
+  validatedAt: String
+  createdAt: String!
+  updatedAt: String!
+  createdBy: String
+  updatedBy: String
+  createdAction: String
+  updatedAction: String
+  profile: UserProfile
+  assignments: [TenantUserAssignment!]!
+}
+
+type UserProfile {
+  userId: ID!
+  firstName: String!
+  lastName: String
+  middleName: String
+  suffix: String
+  title: String
+  phone: String
+  mobile: String
+  dateOfBirth: String
+  gender: String
+  address: Address
+  timezone: String
+  preferredLanguage: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  emergencyContactRelation: String
+  notes: String
+}
+
+type PractitionerProfile {
+  userId: ID!
+  licenseNumber: String
+  licenseState: String
+  npiNumber: String
+  specialty: String
+  subSpecialty: String
+  qualifications: [String!]
+  credentials: [String!]
+  education: String
+  yearsOfExperience: Int
+  bio: String
+  isAcceptingPatients: Boolean!
+}
+
+input CreateUserInput {
+  email: String!
+  password: String!
+  profile: UserProfileInput
+}
+
+input UpdateUserInput {
+  isActive: Boolean!
+}
+
+input UserProfileInput {
+  userId: ID
+  firstName: String!
+  lastName: String
+  middleName: String
+  suffix: String
+  title: String
+  phone: String
+  mobile: String
+  dateOfBirth: String
+  gender: String
+  addressId: ID
+  timezone: String
+  preferredLanguage: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  emergencyContactRelation: String
+  notes: String
+}
+
+# ---------- Tenant domain (canonical Address owner) ----------
+type Tenant {
+  id: ID!
+  name: String!
+  slug: String!
+  domain: String
+  status: String!
+}
+
+type Address {
+  id: ID!
+  address: String!
+  baranggay: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+}
+
+type Branch {
+  id: ID!
+  tenantId: String!
+  name: String!
+  address: Address
+  timezone: String!
+  phone: String
+  isActive: Boolean!
+}
+
+type TenantRole {
+  id: ID!
+  name: String!
+  description: String
+  isSystemRole: Boolean!
+  isActive: Boolean!
+  tenantId: String
+  branchId: String
+  permissions: [TenantPermission!]!
+}
+
+type TenantPermission {
+  id: ID!
+  resource: String!
+  action: String!
+  scope: String!
+  description: String
+}
+
+type TenantUserAssignment {
+  id: ID!
+  userId: String!
+  branch: Branch!
+  tenant: Tenant!
+  role: TenantRole!
+  assignedBy: String
+  assignedAt: String!
+  updatedAt: String
+  updatedBy: String
+  updatedAction: String
+  isActive: Boolean!
+}
+
+type AcceptInvitePayload {
+  token: String!
+  refreshToken: String!
+  userId: ID!
+  email: String!
+}
+
+type TenantInvite {
+  id: ID!
+  email: String!
+  branch: Branch!
+  role: TenantRole!
+  status: String!
+  invitedAt: String!
+  acceptedAt: String
+  expiresAt: String!
+}
+
+input UpdateAssignmentInput {
+  roleId: ID!
+}
+
+input CreateTenantRoleInput {
+  name: String!
+  branchId: ID!
+  description: String
+}
+
+input SetRolePermissionsInput {
+  roleId: ID!
+  permissionIds: [String!]!
+}
+
+input AddressInput {
+  address: String!
+  baranggay: String
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String
+}
+
+input BranchInput {
+  name: String!
+  timezone: String!
+  phone: String
+  isActive: Boolean!
+}
+
+# ---------- Patient domain ----------
+type PatientAddress {
+  id: ID!
+  patientId: ID!
+  address: String!
+  baranggay: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+}
+
+type Patient {
+  id: ID!
+  tenantId: String!
+  branchId: String!
+  firstName: String!
+  lastName: String!
+  dateOfBirth: String!
+  gender: String!
+  notes: String
+  height: String
+  weight: String
+  isActive: Boolean!
+  address: PatientAddress
+  tag: [PatientTags!]!
+  guardian: [Guardian!]!
+  goals: [Goal!]!
+}
+
+type Goal {
+  id: ID!
+  patientId: ID!
+  goal: String!
+  target: String
+  progress: Int!
+  status: String!
+  isActive: Boolean!
+}
+
+type PatientTags {
+  id: ID!
+  name: String!
+}
+
+type Guardian {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  gender: String!
+  email: String
+  phone: String!
+  notes: String
+  isActive: Boolean!
+  address: Address
+  patient: [Patient!]!
+}
+
+input PatientFilter {
+  search: String
+}
+
+input PatientPagination {
+  limit: Int = 10
+  offset: Int = 0
+}
+
+input PatientsFilter {
+  filter: [PatientFilter!]
+  pagination: [PatientPagination!]
+}
+
+input PatientInput {
+  firstName: String!
+  lastName: String!
+  dateOfBirth: String!
+  gender: String!
+  notes: String
+  height: String
+  weight: String
+}
+
+input PatientUpdateInput {
+  firstName: String
+  lastName: String
+  dateOfBirth: String
+  gender: String
+  notes: String
+  height: String
+  weight: String
+}
+
+input PatientAddressInput {
+  address: String!
+  baranggay: String
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String
+}
+
+input GuardianInput {
+  firstName: String!
+  lastName: String!
+  gender: String!
+  email: String
+  phone: String
+  notes: String
+  addressId: ID
+}
+
+input GuardianUpdateInput {
+  firstName: String
+  lastName: String
+  gender: String
+  email: String
+  phone: String
+  notes: String
+  addressId: ID
+}
+
+type PatientGuardianRelationship {
+  patientId: ID!
+  guardianId: ID!
+  relationship: String!
+}
+
+input GoalInput {
+  patientId: ID!
+  goal: String!
+  target: String
+  progress: Int
+  status: String
+}
+
+input GoalUpdateInput {
+  goal: String
+  target: String
+  progress: Int
+  status: String
+}
+
+# ---------- Booking domain ----------
+type BranchHours {
+  id: ID!
+  branch_id: ID!
+  day_of_week: Int!
+  open_time: String
+  close_time: String
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+}
+
+type PractitionerBranch {
+  id: ID!
+  branch_id: ID!
+  practitioner_id: ID!
+  role: String
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+}
+
+type PractitionerAvailability {
+  id: ID!
+  branch_id: ID!
+  practitioner_id: ID!
+  start_time: DateTime!
+  end_time: DateTime!
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+}
+
+type ScheduleTemplate {
+  id: ID!
+  branch_id: ID!
+  practitioner_id: ID!
+  template_name: String!
+  day_of_week: Int!
+  start_time: String!
+  end_time: String!
+  slot_duration_minutes: Int!
+  break_start: String
+  break_end: String
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+}
+
+type AppointmentSlot {
+  id: ID!
+  branch_id: ID!
+  practitioner_id: ID!
+  slot_date: DateTime!
+  slot_start: DateTime!
+  slot_end: DateTime!
+  status: String!
+  appointment_id: ID
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+}
+
+type Appointment {
+  id: ID!
+  branch_id: ID!
+  patient_id: ID!
+  practitioner_id: ID!
+  scheduled_start: DateTime!
+  scheduled_end: DateTime!
+  status: String!
+  note: String
+  slot_id: ID
+  cancellation_reason: String
+  cancelled_at: DateTime
+  rescheduled_from_id: ID
+  rescheduled_to_id: ID
+  reschedule_reason: String
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+  patient: Patient
+  goals: [AppointmentGoal!]!
+  soap: SoapNote
+}
+
+type AppointmentGoal {
+  id: ID!
+  appointment_id: ID!
+  goal_id: ID!
+  progress: Int!
+  status: String!
+  notes: String
+  created_at: DateTime!
+  updated_at: DateTime
+  goal: Goal!
+}
+
+type SoapNote {
+  id: ID!
+  appointment_id: ID!
+  subjective: String
+  objective: String
+  assessment: String
+  plan: String
+  created_at: DateTime!
+  updated_at: DateTime
+}
+
+type ScheduleException {
+  id: ID!
+  branch_id: ID!
+  practitioner_id: ID!
+  exception_date: DateTime!
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  created_by: ID
+  updated_by: ID
+  practitioner: User
+}
+
+input BranchHoursInput {
+  day_of_week: Int!
+  open_time: String
+  close_time: String
+}
+
+input BranchHoursUpdateInput {
+  day_of_week: Int
+  open_time: String
+  close_time: String
+  is_active: Boolean
+}
+
+input PractitionerBranchInput {
+  practitioner_id: ID!
+  role: String
+}
+
+input PractitionerAvailabilityInput {
+  practitioner_id: ID!
+  start_time: DateTime!
+  end_time: DateTime!
+}
+
+input ScheduleTemplateInput {
+  practitioner_id: ID!
+  template_name: String!
+  day_of_week: Int!
+  start_time: String!
+  end_time: String!
+  slot_duration_minutes: Int!
+  break_start: String
+  break_end: String
+}
+
+input ScheduleTemplateUpdateInput {
+  template_name: String
+  day_of_week: Int
+  start_time: String
+  end_time: String
+  slot_duration_minutes: Int
+  break_start: String
+  break_end: String
+  is_active: Boolean
+}
+
+input AppointmentInput {
+  patient_id: ID!
+  practitioner_id: ID!
+  scheduled_start: DateTime!
+  scheduled_end: DateTime!
+  note: String
+  slot_id: ID
+}
+
+input AppointmentUpdateInput {
+  status: String
+  note: String
+}
+
+input CancelAppointmentInput {
+  reason: String!
+}
+
+input RescheduleAppointmentInput {
+  practitioner_id: ID
+  scheduled_start: DateTime!
+  scheduled_end: DateTime!
+  reason: String!
+}
+
+input AppointmentGoalUpdateInput {
+  progress: Int
+  status: String
+  notes: String
+}
+
+input SoapNoteInput {
+  subjective: String
+  objective: String
+  assessment: String
+  plan: String
+}
+
+input ScheduleExceptionInput {
+  practitioner_id: ID!
+  exception_date: DateTime!
+}
+
+input AppointmentSlotsFilter {
+  branch_id: ID
+  practitioner_id: ID
+  slot_date: DateTime
+  status: String
+}
+
+input AppointmentsFilter {
+  branch_id: ID
+  patient_id: ID
+  practitioner_id: ID
+  status: String
+  scheduled_start: DateTime
+  scheduled_end: DateTime
+}
+
+# ---------- Messaging domain ----------
+type MessageThread {
+  id: ID!
+  branch_id: ID!
+  title: String!
+  type: String!
+  is_active: Boolean!
+  messages: [Message!]!
+  participants: [MessageParticipant!]!
+  threadKey: String
+  created_at: String!
+  updated_at: String!
+}
+
+type Message {
+  id: ID!
+  thread_id: ID!
+  sender_id: ID!
+  body: String!
+  nonce: String!
+  is_active: Boolean!
+  created_at: String!
+  updated_at: String!
+}
+
+type MessageParticipant {
+  id: ID!
+  thread_id: ID!
+  participant_id: ID!
+  role: String!
+  last_read_at: String!
+  is_active: Boolean!
+}
+
+input ThreadKeyInput {
+  user_id: ID!
+  encrypted_key: String!
+}
+
+input ThreadInput {
+  title: String!
+  type: String!
+  participants: [ParticipantRefInput!]!
+  keys: [ThreadKeyInput!]!
+}
+
+input ParticipantRefInput {
+  participant_id: ID!
+  role: String!
+}
+
+input ThreadUpdateInput {
+  type: String
+  is_active: Boolean
+}
+
+input MessageInput {
+  thread_id: ID!
+  body: String!
+  nonce: String!
+}
+
+input ParticipantInput {
+  thread_id: ID!
+  participant_id: ID!
+  role: String!
+}
+
+# ---------- Platform admin (super_admin only) ----------
+input CreateTenantInput {
+  name: String!
+  slug: String!
+  domain: String
+}
+
+input CreateBranchInput {
+  tenantId: ID!
+  name: String!
+  timezone: String
+  phone: String
+}
+
+input CreatePlatformUserInput {
+  email: String!
+  password: String!
+  appRole: String!
+}
+
+# ---------- Merged root operations ----------
+type Query {
+  meUser: User!
+  user(id: ID!): User
+  users(ids: [ID!]): [User!]!
+  meTenant: User!
+  tenant(id: ID!): Tenant
+  branch(id: ID!): Branch
+  address(id: ID!): Address
+  tenantRole(id: ID!): TenantRole
+  tenantRoles(branchId: ID!): [TenantRole!]!
+  tenantPermission(id: ID!): TenantPermission
+  tenantPermissions(branchId: ID): [TenantPermission!]!
+  myAssignments: [TenantUserAssignment!]!
+  assignmentsByUser(userId: ID!): [TenantUserAssignment!]!
+  invitesByBranch(branchId: ID!): [TenantInvite!]!
+  assignmentsByBranch(branchId: ID!): [TenantUserAssignment!]!
+  inviteByToken(token: String!): TenantInvite
+  patient(id: ID!): Patient
+  patients(filter: PatientsFilter): [Patient!]!
+  patientsByIds(ids: [ID!]!): [Patient!]!
+  patientsForMessaging(search: String!, limit: Int = 10): [Patient!]!
+  guardian(id: ID!): Guardian
+  branchHour(id: ID!): BranchHours
+  branchHours(branch_id: ID): [BranchHours!]!
+  practitionerBranch(id: ID!): PractitionerBranch
+  practitionerBranches(branch_id: ID, role: String): [PractitionerBranch!]!
+  practitionerAvailability(id: ID!): PractitionerAvailability
+  practitionerAvailabilities(branch_id: ID, practitioner_id: ID): [PractitionerAvailability!]!
+  scheduleTemplate(id: ID!): ScheduleTemplate
+  scheduleTemplates(branch_id: ID, practitioner_id: ID): [ScheduleTemplate!]!
+  appointmentSlot(id: ID!): AppointmentSlot
+  appointmentSlots(filter: AppointmentSlotsFilter!): [AppointmentSlot!]!
+  appointment(id: ID!): Appointment
+  appointments(filter: AppointmentsFilter!): [Appointment!]!
+  scheduleException(id: ID!): ScheduleException
+  scheduleExceptions(branch_id: ID, practitioner_id: ID): [ScheduleException!]!
+  thread(id: ID!): MessageThread
+  threadsByParticipant(participant_id: ID): [MessageThread!]!
+  messages(thread_id: ID!): [Message!]!
+  participants(thread_id: ID!): [MessageParticipant!]!
+  userPublicKey(user_id: ID!): String
+  threadKey(thread_id: ID!): String
+  tenants(search: String, limit: Int = 20, offset: Int = 0): [Tenant!]!
+  branchesByTenant(tenantId: ID!): [Branch!]!
+  platformUsers(search: String, appRole: String, tenantId: ID, branchId: ID): [User!]!
+  appRoles: [AppRole!]!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  upsertProfile(input: UserProfileInput!): UserProfile!
+  createTenantAddress(input: AddressInput!): Address!
+  updateTenantAddress(id: ID!, input: AddressInput!): Address!
+  updateBranch(id: ID!, input: BranchInput!): Branch!
+  createTenantRole(input: CreateTenantRoleInput!): TenantRole!
+  setRoleActive(id: ID!, isActive: Boolean!): TenantRole!
+  setRolePermissions(input: SetRolePermissionsInput!): TenantRole!
+  inviteUser(email: String!, branchId: ID!, roleId: ID!): Boolean!
+  updateAssignment(id: ID!, input: UpdateAssignmentInput!): TenantUserAssignment!
+  setAssignmentActive(id: ID!, isActive: Boolean!): TenantUserAssignment!
+  resendInvite(id: ID!): TenantInvite!
+  acceptInvite(token: String!, name: String!, password: String!): AcceptInvitePayload!
+  createTenant(input: CreateTenantInput!): Tenant!
+  setTenantStatus(id: ID!, status: String!): Tenant!
+  createBranch(input: CreateBranchInput!): Branch!
+  setBranchActive(id: ID!, isActive: Boolean!): Branch!
+  seedBranchDefaults(branchId: ID!): [TenantRole!]!
+  assignUserToBranch(userId: ID!, branchId: ID!, roleId: ID!): TenantUserAssignment!
+  removeBranchAssignment(id: ID!): Boolean!
+  createPlatformUser(input: CreatePlatformUserInput!): User!
+  setUserAppRole(userId: ID!, appRole: String!): User!
+  removeUserAppRole(userId: ID!, appRole: String!): User!
+  sendAccountInvite(userId: ID!): Boolean!
+  createPatient(input: PatientInput!): Patient!
+  updatePatient(id: ID!, input: PatientUpdateInput!): Patient!
+  createPatientAddress(patientId: ID!, input: PatientAddressInput!): PatientAddress!
+  updatePatientAddress(id: ID!, input: PatientAddressInput!): PatientAddress!
+  deletePatient(id: ID!): Patient!
+  inactivatePatient(id: ID!): Patient!
+  reactivatePatient(id: ID!): Patient!
+  createGuardian(input: GuardianInput!): Guardian!
+  updateGuardian(id: ID!, input: GuardianUpdateInput!): Guardian!
+  deleteGuardian(id: ID!): Guardian!
+  addPatientGuardian(patientId: ID!, guardianId: ID!, relationship: String!): PatientGuardianRelationship!
+  updatePatientGuardian(patientId: ID!, guardianId: ID!, relationship: String!): PatientGuardianRelationship!
+  removePatientGuardian(patientId: ID!, guardianId: ID!): Boolean!
+  createGoal(input: GoalInput!): Goal!
+  updateGoal(id: ID!, input: GoalUpdateInput!): Goal!
+  deleteGoal(id: ID!): Goal!
+  createBranchHours(input: BranchHoursInput!): BranchHours!
+  updateBranchHours(id: ID!, input: BranchHoursUpdateInput!): BranchHours!
+  deleteBranchHours(id: ID!): Boolean!
+  createPractitionerBranch(input: PractitionerBranchInput!): PractitionerBranch!
+  deletePractitionerBranch(id: ID!): Boolean!
+  createPractitionerAvailability(input: PractitionerAvailabilityInput!): PractitionerAvailability!
+  deletePractitionerAvailability(id: ID!): Boolean!
+  createScheduleTemplate(input: ScheduleTemplateInput!): ScheduleTemplate!
+  updateScheduleTemplate(id: ID!, input: ScheduleTemplateUpdateInput!): ScheduleTemplate!
+  deleteScheduleTemplate(id: ID!): Boolean!
+  generateSlots(branch_id: ID!, practitioner_id: ID!, date: DateTime!): [AppointmentSlot!]!
+  updateSlotStatus(id: ID!, status: String!): AppointmentSlot!
+  createAppointment(input: AppointmentInput!): Appointment!
+  updateAppointment(id: ID!, input: AppointmentUpdateInput!): Appointment!
+  confirmAppointment(id: ID!): Appointment!
+  startAppointment(id: ID!, goalIds: [ID!]): Appointment!
+  completeAppointment(id: ID!): Appointment!
+  cancelAppointment(id: ID!, input: CancelAppointmentInput!): Appointment!
+  rescheduleAppointment(id: ID!, input: RescheduleAppointmentInput!): Appointment!
+  setAppointmentGoals(appointmentId: ID!, goalIds: [ID!]!): [AppointmentGoal!]!
+  updateAppointmentGoal(id: ID!, input: AppointmentGoalUpdateInput!): AppointmentGoal!
+  removeAppointmentGoal(id: ID!): Boolean!
+  upsertSoapNote(appointmentId: ID!, input: SoapNoteInput!): SoapNote!
+  createScheduleException(input: ScheduleExceptionInput!): ScheduleException!
+  deleteScheduleException(id: ID!): Boolean!
+  createThread(input: ThreadInput!): MessageThread!
+  updateThread(id: ID!, input: ThreadUpdateInput!): MessageThread!
+  deleteThread(id: ID!): Boolean!
+  sendMessage(input: MessageInput!): Message!
+  deleteMessage(id: ID!): Boolean!
+  addParticipant(input: ParticipantInput!): MessageParticipant!
+  removeParticipant(id: ID!): Boolean!
+  registerPublicKey(public_key: String!): Boolean!
+}
