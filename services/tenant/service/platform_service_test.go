@@ -117,12 +117,13 @@ func TestCreateBranchSeedsDefaults(t *testing.T) {
 		t.Fatalf("branch fields wrong: %+v", branch)
 	}
 	// Seeding: 6 missing roles created (therapist stub already exists in fake),
-	// 42 permission definitions, and the empty therapist role gets mapped.
+	// 99 permission definitions (27 base + 15 module-access + 57 module-level),
+	// and the empty therapist role gets mapped.
 	if f.createdRole == nil {
 		t.Fatal("expected missing system roles to be created")
 	}
-	if len(f.createdPerms) != 42 {
-		t.Fatalf("expected 42 permission definitions, got %d", len(f.createdPerms))
+	if len(f.createdPerms) != 99 {
+		t.Fatalf("expected 99 permission definitions, got %d", len(f.createdPerms))
 	}
 	if len(f.replacedPerms) == 0 {
 		t.Fatal("expected default mapping for the permission-less therapist role")

@@ -217,6 +217,16 @@ type ComplexityRoot struct {
 		UpdatedAt    func(childComplexity int) int
 	}
 
+	Module struct {
+		ID             func(childComplexity int) int
+		IsActive       func(childComplexity int) int
+		Label          func(childComplexity int) int
+		MaxLevel       func(childComplexity int) int
+		ParentResource func(childComplexity int) int
+		Resource       func(childComplexity int) int
+		SortOrder      func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AcceptInvite                   func(childComplexity int, token string, name string, password string) int
 		AddParticipant                 func(childComplexity int, input model.ParticipantInput) int
@@ -395,6 +405,7 @@ type ComplexityRoot struct {
 		MeTenant                   func(childComplexity int) int
 		MeUser                     func(childComplexity int) int
 		Messages                   func(childComplexity int, threadID string) int
+		Modules                    func(childComplexity int) int
 		MyAssignments              func(childComplexity int) int
 		Participants               func(childComplexity int, threadID string) int
 		Patient                    func(childComplexity int, id string) int
@@ -737,6 +748,7 @@ type QueryResolver interface {
 	TenantRoles(ctx context.Context, branchID string) ([]*db2.BunTenantRole, error)
 	TenantPermission(ctx context.Context, id string) (*db2.BunTenantPermission, error)
 	TenantPermissions(ctx context.Context, branchID *string) ([]*db2.BunTenantPermission, error)
+	Modules(ctx context.Context) ([]*db2.BunModule, error)
 	MyAssignments(ctx context.Context) ([]*model.TenantUserAssignment, error)
 	AssignmentsByUser(ctx context.Context, userID string) ([]*model.TenantUserAssignment, error)
 	InvitesByBranch(ctx context.Context, branchID string) ([]*model.TenantInvite, error)
@@ -1566,6 +1578,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.MessageThread.UpdatedAt(childComplexity), true
+
+	case "Module.id":
+		if e.ComplexityRoot.Module.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.ID(childComplexity), true
+	case "Module.isActive":
+		if e.ComplexityRoot.Module.IsActive == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.IsActive(childComplexity), true
+	case "Module.label":
+		if e.ComplexityRoot.Module.Label == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.Label(childComplexity), true
+	case "Module.maxLevel":
+		if e.ComplexityRoot.Module.MaxLevel == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.MaxLevel(childComplexity), true
+	case "Module.parentResource":
+		if e.ComplexityRoot.Module.ParentResource == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.ParentResource(childComplexity), true
+	case "Module.resource":
+		if e.ComplexityRoot.Module.Resource == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.Resource(childComplexity), true
+	case "Module.sortOrder":
+		if e.ComplexityRoot.Module.SortOrder == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Module.SortOrder(childComplexity), true
 
 	case "Mutation.acceptInvite":
 		if e.ComplexityRoot.Mutation.AcceptInvite == nil {
@@ -2939,6 +2994,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Messages(childComplexity, args["thread_id"].(string)), true
+	case "Query.modules":
+		if e.ComplexityRoot.Query.Modules == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.Modules(childComplexity), true
 	case "Query.myAssignments":
 		if e.ComplexityRoot.Query.MyAssignments == nil {
 			break
@@ -4134,6 +4195,16 @@ type TenantPermission {
   description: String
 }
 
+type Module {
+  id: ID!
+  resource: String!
+  label: String!
+  parentResource: String
+  sortOrder: Int!
+  maxLevel: String
+  isActive: Boolean!
+}
+
 type TenantUserAssignment {
   id: ID!
   userId: String!
@@ -4682,6 +4753,7 @@ type Query {
   tenantRoles(branchId: ID!): [TenantRole!]!
   tenantPermission(id: ID!): TenantPermission
   tenantPermissions(branchId: ID): [TenantPermission!]!
+  modules: [Module!]!
   myAssignments: [TenantUserAssignment!]!
   assignmentsByUser(userId: ID!): [TenantUserAssignment!]!
   invitesByBranch(branchId: ID!): [TenantInvite!]!
@@ -5122,6 +5194,26 @@ func (ec *executionContext) childFields_MessageThread(ctx context.Context, field
 		return ec.fieldContext_MessageThread_updated_at(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type MessageThread", field.Name)
+}
+
+func (ec *executionContext) childFields_Module(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Module_id(ctx, field)
+	case "resource":
+		return ec.fieldContext_Module_resource(ctx, field)
+	case "label":
+		return ec.fieldContext_Module_label(ctx, field)
+	case "parentResource":
+		return ec.fieldContext_Module_parentResource(ctx, field)
+	case "sortOrder":
+		return ec.fieldContext_Module_sortOrder(ctx, field)
+	case "maxLevel":
+		return ec.fieldContext_Module_maxLevel(ctx, field)
+	case "isActive":
+		return ec.fieldContext_Module_isActive(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Module", field.Name)
 }
 
 func (ec *executionContext) childFields_Patient(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -10621,6 +10713,167 @@ func (ec *executionContext) fieldContext_MessageThread_updated_at(_ context.Cont
 	return graphql.NewScalarFieldContext("MessageThread", field, true, true, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _Module_id(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Module_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Module_resource(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_resource(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Resource, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Module_resource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Module_label(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_label(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Label, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Module_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Module_parentResource(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_parentResource(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ParentResource, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Module_parentResource(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Module_sortOrder(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_sortOrder(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Module_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _Module_maxLevel(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_maxLevel(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxLevel, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Module_maxLevel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Module_isActive(ctx context.Context, field graphql.CollectedField, obj *db2.BunModule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Module_isActive(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Module_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Module", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -15790,6 +16043,38 @@ func (ec *executionContext) fieldContext_Query_tenantPermissions(ctx context.Con
 	if fc.Args, err = ec.field_Query_tenantPermissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_modules(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_modules(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().Modules(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*db2.BunModule) graphql.Marshaler {
+			return ec.marshalNModule2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋtenantᚋdbᚐBunModuleᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_modules(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Module(ctx, field)
+		},
 	}
 	return fc, nil
 }
@@ -25316,6 +25601,74 @@ func (ec *executionContext) _MessageThread(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var moduleImplementors = []string{"Module"}
+
+func (ec *executionContext) _Module(ctx context.Context, sel ast.SelectionSet, obj *db2.BunModule) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, moduleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Module")
+		case "id":
+			out.Values[i] = ec._Module_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resource":
+			out.Values[i] = ec._Module_resource(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "label":
+			out.Values[i] = ec._Module_label(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "parentResource":
+			out.Values[i] = ec._Module_parentResource(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "sortOrder":
+			out.Values[i] = ec._Module_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxLevel":
+			out.Values[i] = ec._Module_maxLevel(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._Module_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -27123,6 +27476,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tenantPermissions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "modules":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_modules(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -30316,6 +30691,32 @@ func (ec *executionContext) marshalNMessageThread2ᚖgithubᚗcomᚋclinicmanage
 		return graphql.Null
 	}
 	return ec._MessageThread(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNModule2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋtenantᚋdbᚐBunModuleᚄ(ctx context.Context, sel ast.SelectionSet, v []*db2.BunModule) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNModule2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋtenantᚋdbᚐBunModule(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNModule2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋtenantᚋdbᚐBunModule(ctx context.Context, sel ast.SelectionSet, v *db2.BunModule) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Module(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNParticipantInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐParticipantInput(ctx context.Context, v any) (model.ParticipantInput, error) {

@@ -147,6 +147,16 @@ type TenantPermission {
   description: String
 }
 
+type Module {
+  id: ID!
+  resource: String!
+  label: String!
+  parentResource: String
+  sortOrder: Int!
+  maxLevel: String
+  isActive: Boolean!
+}
+
 type TenantUserAssignment {
   id: ID!
   userId: String!
@@ -695,6 +705,7 @@ type Query {
   tenantRoles(branchId: ID!): [TenantRole!]!
   tenantPermission(id: ID!): TenantPermission
   tenantPermissions(branchId: ID): [TenantPermission!]!
+  modules: [Module!]!
   myAssignments: [TenantUserAssignment!]!
   assignmentsByUser(userId: ID!): [TenantUserAssignment!]!
   invitesByBranch(branchId: ID!): [TenantInvite!]!

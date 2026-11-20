@@ -278,6 +278,10 @@ func (s *TenantService) ListPermissions(ctx context.Context, branchID string) ([
 	return s.tenantRepo.ListPermissions(ctx, branchID)
 }
 
+func (s *TenantService) ListModules(ctx context.Context) ([]*db.BunModule, error) {
+	return s.tenantRepo.ListModules(ctx)
+}
+
 func (s *TenantService) CreateTenantRole(ctx context.Context, name, branchID string, description *string) (*db.BunTenantRole, error) {
 	branch, err := s.tenantRepo.FindBranchByID(ctx, branchID)
 	if err != nil {
@@ -313,6 +317,31 @@ func (s *TenantService) SetRoleActive(ctx context.Context, id string, isActive b
 	return role, err
 }
 
+// managedPageResources mirrors the frontend access-management modules
+// (web/src/lib/permissions.ts MODULES). Saves from that UI replace links
+// for these resources only; anything else linked to the role is preserved.
+var managedPageResources = map[string]bool{
+	"dashboard":                     true,
+	"patients":                      true,
+	"patient-detail":                true,
+	"patient-detail.soap":           true,
+	"patient-detail.goals":          true,
+	"patient-detail.treatment_plan": true,
+	"patient-detail.assessments":    true,
+	"schedule":                      true,
+	"messaging":                     true,
+	"billing":                       true,
+	"referrals":                     true,
+	"staff":                         true,
+	"admin":                         true,
+	"admin.branch-profile":          true,
+	"admin.branch-address":          true,
+	"admin.access-management":       true,
+	"admin.user-management":         true,
+	"admin.appearance":              true,
+	"settings":                      true,
+}
+
 func (s *TenantService) SetRolePermissions(ctx context.Context, roleID string, permissionIDs []string) (*db.BunTenantRole, error) {
 	role, err := s.tenantRepo.FindRoleByID(ctx, roleID)
 	if err != nil {
@@ -320,6 +349,19 @@ func (s *TenantService) SetRolePermissions(ctx context.Context, roleID string, p
 	}
 	if role == nil {
 		return nil, fmt.Errorf("role not found")
+	}
+	// Self-heal the branch catalog so refs saved by clients always resolve.
+	// Idempotent: only missing definitions are created.
+	if role.BranchID != nil {
+		branch, err := s.tenantRepo.FindBranchByID(ctx, *role.BranchID)
+		if err != nil {
+			return nil, err
+		}
+		if branch != nil {
+			if _, err := s.ensurePermissionDefinitions(ctx, branch); err != nil {
+				return nil, err
+			}
+		}
 	}
 	// The frontend sends permission refs as "resource:action" strings; also
 	// accept raw permission UUIDs for API callers.
@@ -362,7 +404,31 @@ func (s *TenantService) SetRolePermissions(ctx context.Context, roleID string, p
 		}
 		resolved = append(resolved, pid)
 	}
-	if err := s.tenantRepo.ReplaceRolePermissions(ctx, roleID, resolved); err != nil {
+	// Preserve permissions the access-management UI does not model (record-
+	// level access, scope variants): only page-module links are replaced so
+	// saving a role never wipes seed-managed access.
+	current, err := s.tenantRepo.FindPermissionsByRole(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	final := make([]string, 0, len(resolved)+len(current))
+	for _, p := range current {
+		if managedPageResources[p.Resource] {
+			continue
+		}
+		if !seen[p.ID] {
+			seen[p.ID] = true
+			final = append(final, p.ID)
+		}
+	}
+	for _, id := range resolved {
+		if !seen[id] {
+			seen[id] = true
+			final = append(final, id)
+		}
+	}
+	if err := s.tenantRepo.ReplaceRolePermissions(ctx, roleID, final); err != nil {
 		return nil, err
 	}
 	return role, nil

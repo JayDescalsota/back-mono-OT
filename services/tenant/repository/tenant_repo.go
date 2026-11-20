@@ -32,6 +32,7 @@ type TenantRepository interface {
 	ListPermissions(ctx context.Context, branchID string) ([]*db.BunTenantPermission, error)
 	CreateRole(ctx context.Context, role *db.BunTenantRole) error
 	CreatePermission(ctx context.Context, perm *db.BunTenantPermission) error
+	ListModules(ctx context.Context) ([]*db.BunModule, error)
 	SetRoleActive(ctx context.Context, id string, isActive bool) (*db.BunTenantRole, error)
 	ReplaceRolePermissions(ctx context.Context, roleID string, permissionIDs []string) error
 	FindAssignmentsByUser(ctx context.Context, userID string) ([]*model.TenantUserAssignment, error)
@@ -232,6 +233,13 @@ func (r *TenantRepo) ListPermissions(ctx context.Context, branchID string) ([]*d
 	}
 	err := q.Order("resource ASC", "action ASC").Scan(ctx)
 	return permissions, err
+}
+
+func (r *TenantRepo) ListModules(ctx context.Context) ([]*db.BunModule, error) {
+	var modules []*db.BunModule
+	// The module catalog is global (not branch-scoped).
+	err := r.alldb.NewSelect(ctx, &modules).Where("is_active = true").Order("sort_order ASC").Scan(ctx)
+	return modules, err
 }
 
 func (r *TenantRepo) CreateRole(ctx context.Context, role *db.BunTenantRole) error {

@@ -989,6 +989,11 @@ func (r *queryResolver) TenantPermissions(ctx context.Context, branchID *string)
 	return r.TenantService.ListPermissions(ctx, bid)
 }
 
+// Modules is the resolver for the modules field.
+func (r *queryResolver) Modules(ctx context.Context) ([]*db2.BunModule, error) {
+	return r.TenantService.ListModules(ctx)
+}
+
 // MyAssignments is the resolver for the myAssignments field.
 func (r *queryResolver) MyAssignments(ctx context.Context) ([]*model.TenantUserAssignment, error) {
 	userID := sharedctx.UserIDFromCtx(ctx)

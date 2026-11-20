@@ -187,6 +187,9 @@ func (f *fakeRepo) ListPermissions(ctx context.Context, branchID string) ([]*db.
 	}
 	return nil, nil
 }
+func (f *fakeRepo) ListModules(ctx context.Context) ([]*db.BunModule, error) {
+	return nil, nil
+}
 func (f *fakeRepo) CreateRole(ctx context.Context, role *db.BunTenantRole) error {
 	f.createdRole = role
 	if f.createRole != nil {
@@ -361,11 +364,31 @@ func TestSetRolePermissionsUnknownRef(t *testing.T) {
 		},
 	}
 	svc, _, _ := newSvc(f)
-	if _, err := svc.SetRolePermissions(context.Background(), "r1", []string{"billing:write"}); err == nil {
+	// "frobnicate" is not a seeded definition, so even the self-healing
+	// catalog ensure cannot resolve it.
+	if _, err := svc.SetRolePermissions(context.Background(), "r1", []string{"frobnicate:read"}); err == nil {
 		t.Fatal("expected error for unknown permission ref")
 	}
 	if f.replacedPerms != nil {
 		t.Fatal("must not persist on resolution failure")
+	}
+}
+
+func TestSetRolePermissionsPreservesUnmanagedPermissions(t *testing.T) {
+	f := &fakeRepo{
+		listPerms: func(branchID string) ([]*db.BunTenantPermission, error) {
+			return []*db.BunTenantPermission{{ID: "p-pat-access", Resource: "patients", Action: "access"}}, nil
+		},
+		permsByRole: map[string][]*db.BunTenantPermission{
+			"r1": {{ID: "p-soap", Resource: "soap_note", Action: "read"}},
+		},
+	}
+	svc, _, _ := newSvc(f)
+	if _, err := svc.SetRolePermissions(context.Background(), "r1", []string{"patients:access"}); err != nil {
+		t.Fatalf("SetRolePermissions: %v", err)
+	}
+	if len(f.replacedPerms) != 2 || f.replacedPerms[0] != "p-soap" || f.replacedPerms[1] != "p-pat-access" {
+		t.Fatalf("unmanaged permissions must survive a save: %v", f.replacedPerms)
 	}
 }
 

@@ -115,6 +115,25 @@ type BunTenantPermission struct {
 
 func (BunTenantPermission) IsEntity() {}
 
+// BunModule maps to the modules table: the page-module catalog rendered by
+// the access-management UI (labels, hierarchy, order, level caps).
+type BunModule struct {
+	bun.BaseModel `bun:"table:modules"`
+
+	ID             string  `bun:"id,pk"                        json:"id"`
+	Resource       string  `bun:"resource,notnull"             json:"resource"`
+	Label          string  `bun:"label,notnull"                json:"label"`
+	ParentResource *string `bun:"parent_resource"              json:"parentResource,omitempty"`
+	SortOrder      int     `bun:"sort_order,notnull,default:0" json:"sortOrder"`
+	MaxLevel       *string `bun:"max_level"                    json:"maxLevel,omitempty"`
+	IsActive       bool    `bun:"is_active,notnull,default:true" json:"isActive"`
+
+	CreatedAt time.Time  `bun:"created_at" json:"-"`
+	UpdatedAt *time.Time `bun:"updated_at" json:"-"`
+}
+
+func (BunModule) IsEntity() {}
+
 // BunTenantInvite maps to the tenant_invites table.
 // Pending invites are emails without an account yet; once the user registers
 // (or if they already exist) InviteUser converts them into assignments.

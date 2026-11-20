@@ -22,6 +22,8 @@ models:
     model: github.com/clinicmanager/services/tenant/db.BunTenantRole
   TenantPermission:
     model: github.com/clinicmanager/services/tenant/db.BunTenantPermission
+  Module:
+    model: github.com/clinicmanager/services/tenant/db.BunModule
   Patient:
     model: github.com/clinicmanager/services/patient/db.BunPatients
   PatientAddress:

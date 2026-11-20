@@ -108,6 +108,71 @@ var accessPermissionsSeed = []permissionSeed{
 	{"settings", "access", "branch", "Open settings"},
 }
 
+// modulePermissionsSeed holds the read/write/delete counterparts (plus the
+// access entries missing for nested pages) for every frontend module in
+// web/src/lib/permissions.ts MODULES. The access-management UI saves levels
+// as resource:action refs (view=access+read, editor=+write, full=+delete),
+// so every combination it can send must resolve to a definition here.
+var modulePermissionsSeed = []permissionSeed{
+	{"dashboard", "read", "branch", "View dashboard"},
+	{"patients", "read", "branch", "View patient directory"},
+	{"patients", "write", "branch", "Manage patient directory"},
+	{"patients", "delete", "branch", "Remove patients"},
+	{"patient-detail", "read", "branch", "View patient details"},
+	{"patient-detail", "write", "branch", "Edit patient details"},
+	{"patient-detail", "delete", "branch", "Remove patient details"},
+	{"patient-detail.soap", "access", "branch", "Open SOAP notes"},
+	{"patient-detail.soap", "read", "branch", "View SOAP notes"},
+	{"patient-detail.soap", "write", "branch", "Edit SOAP notes"},
+	{"patient-detail.soap", "delete", "branch", "Remove SOAP notes"},
+	{"patient-detail.goals", "access", "branch", "Open goals"},
+	{"patient-detail.goals", "read", "branch", "View goals"},
+	{"patient-detail.goals", "write", "branch", "Edit goals"},
+	{"patient-detail.goals", "delete", "branch", "Remove goals"},
+	{"patient-detail.treatment_plan", "access", "branch", "Open treatment plan"},
+	{"patient-detail.treatment_plan", "read", "branch", "View treatment plan"},
+	{"patient-detail.treatment_plan", "write", "branch", "Edit treatment plan"},
+	{"patient-detail.treatment_plan", "delete", "branch", "Remove treatment plan"},
+	{"patient-detail.assessments", "access", "branch", "Open assessments"},
+	{"patient-detail.assessments", "read", "branch", "View assessments"},
+	{"patient-detail.assessments", "write", "branch", "Edit assessments"},
+	{"patient-detail.assessments", "delete", "branch", "Remove assessments"},
+	{"schedule", "read", "branch", "View schedule"},
+	{"schedule", "write", "branch", "Manage schedule"},
+	{"schedule", "delete", "branch", "Remove appointments"},
+	{"messaging", "read", "branch", "View messages"},
+	{"messaging", "write", "branch", "Send messages"},
+	{"messaging", "delete", "branch", "Remove messages"},
+	{"billing", "delete", "branch", "Remove billing records"},
+	{"referrals", "read", "branch", "View referrals"},
+	{"referrals", "write", "branch", "Manage referrals"},
+	{"referrals", "delete", "branch", "Remove referrals"},
+	{"staff", "read", "branch", "View staff directory"},
+	{"staff", "write", "branch", "Manage staff directory"},
+	{"staff", "delete", "branch", "Remove staff records"},
+	{"admin", "read", "branch", "View admin hub"},
+	{"admin", "write", "branch", "Manage admin hub"},
+	{"admin", "delete", "branch", "Remove admin resources"},
+	{"admin.branch-profile", "read", "branch", "View branch profile"},
+	{"admin.branch-profile", "write", "branch", "Edit branch profile"},
+	{"admin.branch-profile", "delete", "branch", "Remove branch profile"},
+	{"admin.branch-address", "read", "branch", "View branch address"},
+	{"admin.branch-address", "write", "branch", "Edit branch address"},
+	{"admin.branch-address", "delete", "branch", "Remove branch address"},
+	{"admin.access-management", "read", "branch", "View access management"},
+	{"admin.access-management", "write", "branch", "Edit access management"},
+	{"admin.access-management", "delete", "branch", "Remove access roles"},
+	{"admin.user-management", "read", "branch", "View user management"},
+	{"admin.user-management", "write", "branch", "Edit user management"},
+	{"admin.user-management", "delete", "branch", "Remove users"},
+	{"admin.appearance", "read", "branch", "View appearance settings"},
+	{"admin.appearance", "write", "branch", "Edit appearance settings"},
+	{"admin.appearance", "delete", "branch", "Reset appearance settings"},
+	{"settings", "read", "branch", "View settings"},
+	{"settings", "write", "branch", "Edit settings"},
+	{"settings", "delete", "branch", "Reset settings"},
+}
+
 // rolePermissionRule decides which permissions a system role gets, mirroring
 // the 02_02 seed mapping. Returning ("*", "*") means "every permission".
 func rolePermissionRule(roleName string) (resources []string, actions []string, all bool) {
@@ -344,7 +409,73 @@ func (s *TenantService) AssignUserToBranch(ctx context.Context, userID, branchID
 	return nil, fmt.Errorf("assignment not found after write")
 }
 
-// SeedBranchDefaults makes sure a branch has the 7 system roles, all 42
+// ensurePermissionDefinitions creates any missing permission definitions
+// for the branch (base + module-access + module-level seeds) and returns
+// the branch's full definition list. Idempotent: existing definitions are
+// reused, so it is safe to call on any branch, new or old — including right
+// before resolving permission refs for a role save.
+func (s *TenantService) ensurePermissionDefinitions(ctx context.Context, branch *db.BunBranch) ([]*db.BunTenantPermission, error) {
+	var actor *string
+	if ct := sharedctx.FromContext(ctx); ct.UserID != "" {
+		actor = &ct.UserID
+	}
+	existing, err := s.tenantRepo.ListPermissions(ctx, branch.ID)
+	if err != nil {
+		return nil, err
+	}
+	havePerm := map[string]*db.BunTenantPermission{}
+	for _, p := range existing {
+		havePerm[p.Resource+"\x00"+p.Action+"\x00"+p.Scope] = p
+	}
+	ensurePerm := func(seed permissionSeed) (*db.BunTenantPermission, error) {
+		key := seed.resource + "\x00" + seed.action + "\x00" + seed.scope
+		if p, ok := havePerm[key]; ok {
+			return p, nil
+		}
+		desc := seed.description
+		perm := &db.BunTenantPermission{
+			ID:          uuid.NewString(),
+			Resource:    seed.resource,
+			Action:      seed.action,
+			Scope:       seed.scope,
+			Description: &desc,
+			TenantID:    &branch.TenantID,
+			BranchID:    &branch.ID,
+			CreatedBy:   actor,
+			UpdatedBy:   actor,
+		}
+		if err := s.tenantRepo.CreatePermission(ctx, perm); err != nil {
+			return nil, err
+		}
+		havePerm[key] = perm
+		return perm, nil
+	}
+	allPerms := []*db.BunTenantPermission{}
+	for _, seed := range basePermissionsSeed {
+		p, err := ensurePerm(seed)
+		if err != nil {
+			return nil, err
+		}
+		allPerms = append(allPerms, p)
+	}
+	for _, seed := range accessPermissionsSeed {
+		p, err := ensurePerm(seed)
+		if err != nil {
+			return nil, err
+		}
+		allPerms = append(allPerms, p)
+	}
+	for _, seed := range modulePermissionsSeed {
+		p, err := ensurePerm(seed)
+		if err != nil {
+			return nil, err
+		}
+		allPerms = append(allPerms, p)
+	}
+	return allPerms, nil
+}
+
+// SeedBranchDefaults makes sure a branch has the 7 system roles, all 99
 // permission definitions, and the default role→permission mapping. It only
 // fills gaps: roles that already have permissions are left untouched, so
 // re-running it never wipes custom access setups. Safe to call on any
@@ -394,52 +525,10 @@ func (s *TenantService) SeedBranchDefaults(ctx context.Context, branchID string)
 		roleByName[seed.name] = role
 	}
 
-	// 2. Create missing permission definitions.
-	existing, err := s.tenantRepo.ListPermissions(ctx, branchID)
+	// 2. Create missing permission definitions (idempotent; safe on any branch).
+	allPerms, err := s.ensurePermissionDefinitions(ctx, branch)
 	if err != nil {
 		return nil, err
-	}
-	havePerm := map[string]*db.BunTenantPermission{}
-	for _, p := range existing {
-		havePerm[p.Resource+"\x00"+p.Action+"\x00"+p.Scope] = p
-	}
-	ensurePerm := func(seed permissionSeed) (*db.BunTenantPermission, error) {
-		key := seed.resource + "\x00" + seed.action + "\x00" + seed.scope
-		if p, ok := havePerm[key]; ok {
-			return p, nil
-		}
-		desc := seed.description
-		perm := &db.BunTenantPermission{
-			ID:          uuid.NewString(),
-			Resource:    seed.resource,
-			Action:      seed.action,
-			Scope:       seed.scope,
-			Description: &desc,
-			TenantID:    &branch.TenantID,
-			BranchID:    &branchID,
-			CreatedBy:   actor,
-			UpdatedBy:   actor,
-		}
-		if err := s.tenantRepo.CreatePermission(ctx, perm); err != nil {
-			return nil, err
-		}
-		havePerm[key] = perm
-		return perm, nil
-	}
-	allPerms := []*db.BunTenantPermission{}
-	for _, seed := range basePermissionsSeed {
-		p, err := ensurePerm(seed)
-		if err != nil {
-			return nil, err
-		}
-		allPerms = append(allPerms, p)
-	}
-	for _, seed := range accessPermissionsSeed {
-		p, err := ensurePerm(seed)
-		if err != nil {
-			return nil, err
-		}
-		allPerms = append(allPerms, p)
 	}
 
 	// 3. Map default permissions onto roles that have none yet.
