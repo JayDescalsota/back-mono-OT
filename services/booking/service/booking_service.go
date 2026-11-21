@@ -96,6 +96,18 @@ func (s *BookingService) ListBranchHours(ctx context.Context) ([]*db.BunBranchHo
 	return s.BookingRepository.ListBranchHours(ctx)
 }
 
+func (s *BookingService) ListAppointmentTypes(ctx context.Context) ([]*db.BunAppointmentType, error) {
+	return s.BookingRepository.ListAppointmentTypes(ctx)
+}
+
+func (s *BookingService) ListTherapyDisciplines(ctx context.Context) ([]*db.BunTherapyDiscipline, error) {
+	return s.BookingRepository.ListTherapyDisciplines(ctx)
+}
+
+func (s *BookingService) ListDisciplinesByType(ctx context.Context, appointmentTypeID string) ([]*db.BunTherapyDiscipline, error) {
+	return s.BookingRepository.ListDisciplinesByType(ctx, appointmentTypeID)
+}
+
 func (s *BookingService) CreateBranchHours(ctx context.Context, input model.BranchHoursInput) (*db.BunBranchHours, error) {
 	tctx := sharedCtx.FromContext(ctx)
 	now := time.Now()
@@ -590,6 +602,46 @@ func (s *BookingService) CreateAppointment(ctx context.Context, input model.Appo
 		notes = *input.Note
 	}
 
+	var appointmentTypeID *string
+	if input.AppointmentTypeID != nil && *input.AppointmentTypeID != "" {
+		t, err := s.BookingRepository.GetAppointmentTypeByID(ctx, *input.AppointmentTypeID)
+		if err != nil {
+			return nil, err
+		}
+		if t == nil {
+			return nil, fmt.Errorf("appointment type not found: %s", *input.AppointmentTypeID)
+		}
+		appointmentTypeID = &t.ID
+	}
+
+	var disciplineID *string
+	if input.DisciplineID != nil && *input.DisciplineID != "" {
+		d, err := s.BookingRepository.GetTherapyDisciplineByID(ctx, *input.DisciplineID)
+		if err != nil {
+			return nil, err
+		}
+		if d == nil {
+			return nil, fmt.Errorf("therapy discipline not found: %s", *input.DisciplineID)
+		}
+		if input.AppointmentTypeID != nil && *input.AppointmentTypeID != "" {
+			offered, err := s.BookingRepository.ListDisciplinesByType(ctx, *input.AppointmentTypeID)
+			if err != nil {
+				return nil, err
+			}
+			linked := false
+			for _, o := range offered {
+				if o.ID == d.ID {
+					linked = true
+					break
+				}
+			}
+			if !linked {
+				return nil, fmt.Errorf("discipline is not offered for the selected appointment type")
+			}
+		}
+		disciplineID = &d.ID
+	}
+
 	m := &db.BunAppointment{
 		ID:                uuid.NewString(),
 		TenantID:          tctx.TenantID,
@@ -597,6 +649,8 @@ func (s *BookingService) CreateAppointment(ctx context.Context, input model.Appo
 		BranchID:          tctx.BranchID,
 		PatientID:         patientID,
 		PractitionerID:    practitionerID,
+		AppointmentTypeID: appointmentTypeID,
+		DisciplineID:      disciplineID,
 		StartAt:           startAt,
 		EndAt:             endAt,
 		Status:            "PENDING",

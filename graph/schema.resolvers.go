@@ -150,6 +150,11 @@ func (r *appointmentSlotResolver) Practitioner(ctx context.Context, obj *db.BunA
 	return r.Resolver.practitionerUser(ctx, obj.PractitionerID)
 }
 
+// Disciplines is the resolver for the disciplines field.
+func (r *appointmentTypeResolver) Disciplines(ctx context.Context, obj *db.BunAppointmentType) ([]*db.BunTherapyDiscipline, error) {
+	return r.BookingService.ListDisciplinesByType(ctx, obj.ID)
+}
+
 // Address is the resolver for the address field.
 func (r *branchResolver) Address(ctx context.Context, obj *db2.BunBranch) (*db2.BunAddress, error) {
 	if obj.AddressID == nil || *obj.AddressID == "" {
@@ -1149,6 +1154,16 @@ func (r *queryResolver) Appointments(ctx context.Context, filter model.Appointme
 	return r.BookingService.GetAppointments(ctx, mustToSvc[bookingmodel.AppointmentsFilter](filter))
 }
 
+// AppointmentTypes is the resolver for the appointmentTypes field.
+func (r *queryResolver) AppointmentTypes(ctx context.Context) ([]*db.BunAppointmentType, error) {
+	return r.BookingService.ListAppointmentTypes(ctx)
+}
+
+// TherapyDisciplines is the resolver for the therapyDisciplines field.
+func (r *queryResolver) TherapyDisciplines(ctx context.Context) ([]*db.BunTherapyDiscipline, error) {
+	return r.BookingService.ListTherapyDisciplines(ctx)
+}
+
 // ScheduleException is the resolver for the scheduleException field.
 func (r *queryResolver) ScheduleException(ctx context.Context, id string) (*db.BunScheduleException, error) {
 	return r.BookingService.GetScheduleExceptionByID(ctx, id)
@@ -1421,6 +1436,11 @@ func (r *Resolver) AppointmentSlot() generated.AppointmentSlotResolver {
 	return &appointmentSlotResolver{r}
 }
 
+// AppointmentType returns generated.AppointmentTypeResolver implementation.
+func (r *Resolver) AppointmentType() generated.AppointmentTypeResolver {
+	return &appointmentTypeResolver{r}
+}
+
 // Branch returns generated.BranchResolver implementation.
 func (r *Resolver) Branch() generated.BranchResolver { return &branchResolver{r} }
 
@@ -1480,6 +1500,7 @@ type (
 	appointmentResolver              struct{ *Resolver }
 	appointmentGoalResolver          struct{ *Resolver }
 	appointmentSlotResolver          struct{ *Resolver }
+	appointmentTypeResolver          struct{ *Resolver }
 	branchResolver                   struct{ *Resolver }
 	branchHoursResolver              struct{ *Resolver }
 	guardianResolver                 struct{ *Resolver }

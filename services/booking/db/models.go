@@ -104,7 +104,46 @@ type BunScheduleTemplate struct {
 
 func (BunScheduleTemplate) IsEntity() {}
 
-// BunAppointmentSlot represents actual generated bookable time slots generated from ScheduleTemplates.
+// BunAppointmentType maps to the booking_appointment_types lookup table used
+// by the New Appointment modal (booking type, attendees, typical duration,
+// scheduling notes).
+type BunAppointmentType struct {
+	bun.BaseModel `bun:"table:booking_appointment_types"`
+
+	ID              string `bun:"id,pk"                    json:"id"`
+	Code            string `bun:"code,notnull,unique"       json:"code"`
+	Name            string `bun:"name,notnull"              json:"name"`
+	Attendees       string `bun:"attendees,notnull,default:''" json:"attendees"`
+	TypicalDuration string `bun:"typical_duration,notnull,default:''" json:"typicalDuration"`
+	SchedulingNotes string `bun:"scheduling_notes,notnull,default:''" json:"schedulingNotes"`
+	DisciplineMode  string `bun:"discipline_mode,notnull,default:'hidden'" json:"disciplineMode"`
+	SortOrder       int    `bun:"sort_order,notnull,default:0" json:"sortOrder"`
+	IsActive        bool   `bun:"is_active,notnull,default:true" json:"isActive"`
+
+	CreatedAt time.Time  `bun:"created_at" json:"-"`
+	UpdatedAt *time.Time `bun:"updated_at" json:"-"`
+}
+
+func (BunAppointmentType) IsEntity() {}
+
+// BunTherapyDiscipline maps to the booking_disciplines lookup table. Each
+// discipline is a single row with a stable ID shared by every appointment
+// type that offers it.
+type BunTherapyDiscipline struct {
+	bun.BaseModel `bun:"table:booking_disciplines"`
+
+	ID        string `bun:"id,pk"                     json:"id"`
+	Code      string `bun:"code,notnull,unique"     json:"code"`
+	Name      string `bun:"name,notnull"            json:"name"`
+	SortOrder int    `bun:"sort_order,notnull,default:0" json:"sortOrder"`
+	IsActive  bool   `bun:"is_active,notnull,default:true" json:"isActive"`
+
+	CreatedAt time.Time  `bun:"created_at" json:"-"`
+	UpdatedAt *time.Time `bun:"updated_at" json:"-"`
+}
+
+func (BunTherapyDiscipline) IsEntity() {}
+
 type BunAppointmentSlot struct {
 	bun.BaseModel      `bun:"table:booking_appointment_slots"`
 	ID                 string    `bun:"id,pk" json:"id"`
@@ -139,6 +178,8 @@ type BunAppointment struct {
 	BranchID           string     `bun:"branch_id" json:"branch_id"`
 	PatientID          *string    `bun:"patient_id" json:"patient_id"`
 	PractitionerID     *string    `bun:"practitioner_id" json:"practitioner_id"`
+	AppointmentTypeID  *string    `bun:"appointment_type_id" json:"appointment_type_id"`
+	DisciplineID       *string    `bun:"discipline_id" json:"discipline_id"`
 	StartAt            time.Time  `bun:"start_at" json:"start_at"`
 	EndAt              time.Time  `bun:"end_at" json:"end_at"`
 	Status             string     `bun:"status" json:"status"` // PENDING / CONFIRMED / IN_PROGRESS / DONE / CANCELLED / RESCHEDULED

@@ -18,6 +18,7 @@ INSERT INTO modules (resource, label, parent_resource, sort_order, max_level) VA
     ('patients', 'Patients', NULL, 20, NULL),
     ('patient-detail', 'Patient Detail', NULL, 30, NULL),
     ('schedule', 'Schedule', NULL, 80, NULL),
+    ('assessments', 'Assessments', NULL, 85, NULL),
     ('messaging', 'Messaging', NULL, 90, NULL),
     ('billing', 'Billing', NULL, 100, NULL),
     ('referrals', 'Referrals', NULL, 110, NULL),

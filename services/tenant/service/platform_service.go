@@ -143,6 +143,10 @@ var modulePermissionsSeed = []permissionSeed{
 	{"messaging", "read", "branch", "View messages"},
 	{"messaging", "write", "branch", "Send messages"},
 	{"messaging", "delete", "branch", "Remove messages"},
+	{"assessments", "access", "branch", "Open assessments"},
+	{"assessments", "read", "branch", "View assessments"},
+	{"assessments", "write", "branch", "Edit assessments"},
+	{"assessments", "delete", "branch", "Remove assessments"},
 	{"billing", "delete", "branch", "Remove billing records"},
 	{"referrals", "read", "branch", "View referrals"},
 	{"referrals", "write", "branch", "Manage referrals"},
@@ -475,7 +479,7 @@ func (s *TenantService) ensurePermissionDefinitions(ctx context.Context, branch 
 	return allPerms, nil
 }
 
-// SeedBranchDefaults makes sure a branch has the 7 system roles, all 99
+// SeedBranchDefaults makes sure a branch has the 7 system roles, all 103
 // permission definitions, and the default role→permission mapping. It only
 // fills gaps: roles that already have permissions are left untouched, so
 // re-running it never wipes custom access setups. Safe to call on any
@@ -553,7 +557,8 @@ func (s *TenantService) SeedBranchDefaults(ctx context.Context, branchID string)
 }
 
 // defaultPermissionIDs picks the permission IDs a system role starts with,
-// following the same rules as the 02_02 seed migration.
+// following the same rules as the 02_02 seed migration. Every role
+// additionally gets full assessments access (access/read/write/delete).
 func defaultPermissionIDs(roleName string, perms []*db.BunTenantPermission) []string {
 	resources, actions, all := rolePermissionRule(roleName)
 	if all {
@@ -574,6 +579,15 @@ func defaultPermissionIDs(roleName string, perms []*db.BunTenantPermission) []st
 	ids := []string{}
 	for _, p := range perms {
 		if in(resources, p.Resource) && in(actions, p.Action) {
+			ids = append(ids, p.ID)
+		}
+	}
+	for _, p := range perms {
+		if p.Resource != "assessments" {
+			continue
+		}
+		switch p.Action {
+		case "access", "read", "write", "delete":
 			ids = append(ids, p.ID)
 		}
 	}

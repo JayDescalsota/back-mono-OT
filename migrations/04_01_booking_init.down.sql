@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS booking_appointment_type_disciplines;
+DROP TABLE IF EXISTS booking_disciplines;
+DROP TABLE IF EXISTS booking_appointment_types;
 DROP TABLE IF EXISTS booking_schedule_exceptions;
 DROP TABLE IF EXISTS booking_appointments;
 DROP TABLE IF EXISTS booking_appointment_slots;

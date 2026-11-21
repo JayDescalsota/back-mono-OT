@@ -1,3 +1,6 @@
+DELETE FROM booking_appointment_type_disciplines;
+DELETE FROM booking_disciplines;
+DELETE FROM booking_appointment_types;
 DELETE FROM booking_schedule_exceptions;
 DELETE FROM booking_appointments;
 DELETE FROM booking_appointment_slots;

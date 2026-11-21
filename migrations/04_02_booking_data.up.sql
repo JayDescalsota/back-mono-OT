@@ -187,3 +187,30 @@ VALUES
     ('b0000000-0007-4000-8000-000000000001', 'a1b2c3d4-0001-4000-8000-000000000001', 'b0000000-0004-4000-8000-000000000001', 'LUNCH_BREAK', 'Staff lunch break', DATE_TRUNC('day', NOW()) + INTERVAL '12 hours', DATE_TRUNC('day', NOW()) + INTERVAL '13 hours', 'ACTIVE', true, 'seed')
 ON CONFLICT (id) DO NOTHING;
 
+-- Seed Appointment Types (booking taxonomy lookup)
+INSERT INTO booking_appointment_types (code, name, attendees, typical_duration, scheduling_notes, discipline_mode, sort_order) VALUES
+    ('initial-consultation', 'Initial Consultation / Intake', 'Parents/Caregivers only (or with child)', '30-45 mins', 'Good entry point for new users; can be offered as In-Person or Telehealth.', 'hidden', 10),
+    ('assessment-evaluation', 'Assessment / Evaluation', 'Child + Therapist', '60-120 mins', 'Requires longer blocks, specialized rooms, and often a referral upload (especially in the Philippines, where clinics frequently require a Developmental Pediatrician''s referral before assessment).', 'hidden', 20),
+    ('assessment-feedback', 'Assessment Feedback / Case Conference', 'Parents/Caregivers + Therapist', '30-45 mins', 'Booked after an evaluation to review results and treatment goals; works well via Telehealth.', 'hidden', 30),
+    ('regular-therapy', 'Regular Therapy Session', 'Child + Therapist', '45-60 mins', 'The core recurring booking; must be tagged by Discipline (e.g. OT, Speech, PT, Behavioral/ABA, Play Therapy) and support recurring weekly slots.', 'required', 40),
+    ('group-therapy', 'Group Therapy / Social Skills', 'Multiple Children + 1-2 Therapists', '60-90 mins', 'Requires multi-seat capacity limits (e.g. max 4-6 kids) rather than a 1-on-1 lock.', 'optional', 50),
+    ('progress-review', 'Progress Review / Re-assessment', 'Child + Therapist (+ Parents)', '60 mins', 'Triggered every 3-6 months to update therapy goals or renew medical/insurance prescriptions.', 'hidden', 60)
+ON CONFLICT (code) DO NOTHING;
+
+-- Seed Therapy Disciplines (shared lookup; appointment types link to subsets)
+INSERT INTO booking_disciplines (code, name, sort_order) VALUES
+    ('ot', 'Occupational Therapy (OT)', 10),
+    ('speech', 'Speech Therapy', 20),
+    ('pt', 'Physical Therapy (PT)', 30),
+    ('behavioral-aba', 'Behavioral / ABA', 40),
+    ('play-therapy', 'Play Therapy', 50)
+ON CONFLICT (code) DO NOTHING;
+
+-- Link disciplines to the appointment types that offer them
+INSERT INTO booking_appointment_type_disciplines (appointment_type_id, discipline_id)
+SELECT t.id, d.id
+FROM booking_appointment_types t
+CROSS JOIN booking_disciplines d
+WHERE t.code IN ('regular-therapy', 'group-therapy')
+ON CONFLICT DO NOTHING;
+

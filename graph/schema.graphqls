@@ -438,11 +438,34 @@ type AppointmentSlot {
   practitioner: User
 }
 
+type AppointmentType {
+  id: ID!
+  code: String!
+  name: String!
+  attendees: String!
+  typicalDuration: String!
+  schedulingNotes: String!
+  disciplineMode: String!
+  sortOrder: Int!
+  isActive: Boolean!
+  disciplines: [TherapyDiscipline!]!
+}
+
+type TherapyDiscipline {
+  id: ID!
+  code: String!
+  name: String!
+  sortOrder: Int!
+  isActive: Boolean!
+}
+
 type Appointment {
   id: ID!
   branch_id: ID!
   patient_id: ID!
   practitioner_id: ID!
+  appointment_type_id: ID
+  discipline_id: ID
   scheduled_start: DateTime!
   scheduled_end: DateTime!
   status: String!
@@ -552,6 +575,8 @@ input AppointmentInput {
   scheduled_end: DateTime!
   note: String
   slot_id: ID
+  appointment_type_id: ID
+  discipline_id: ID
 }
 
 input AppointmentUpdateInput {
@@ -728,6 +753,8 @@ type Query {
   appointmentSlots(filter: AppointmentSlotsFilter!): [AppointmentSlot!]!
   appointment(id: ID!): Appointment
   appointments(filter: AppointmentsFilter!): [Appointment!]!
+  appointmentTypes: [AppointmentType!]!
+  therapyDisciplines: [TherapyDiscipline!]!
   scheduleException(id: ID!): ScheduleException
   scheduleExceptions(branch_id: ID, practitioner_id: ID): [ScheduleException!]!
   thread(id: ID!): MessageThread

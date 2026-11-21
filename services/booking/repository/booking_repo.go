@@ -55,6 +55,62 @@ func (r *BookingRepository) ListBranchHours(ctx context.Context) ([]*db.BunBranc
 	return list, nil
 }
 
+// Appointment types are a global lookup shared by all branches.
+func (r *BookingRepository) ListAppointmentTypes(ctx context.Context) ([]*db.BunAppointmentType, error) {
+	var list []*db.BunAppointmentType
+	err := r.alldb.NewSelect(ctx, &list).Where("is_active = true").Order("sort_order ASC").Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *BookingRepository) ListDisciplinesByType(ctx context.Context, appointmentTypeID string) ([]*db.BunTherapyDiscipline, error) {
+	var list []*db.BunTherapyDiscipline
+	err := r.alldb.NewSelect(ctx, &list).
+		Where("is_active = true").
+		Where("id IN (SELECT discipline_id FROM booking_appointment_type_disciplines WHERE appointment_type_id = ?)", appointmentTypeID).
+		Order("sort_order ASC").
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *BookingRepository) ListTherapyDisciplines(ctx context.Context) ([]*db.BunTherapyDiscipline, error) {
+	var list []*db.BunTherapyDiscipline
+	err := r.alldb.NewSelect(ctx, &list).Where("is_active = true").Order("sort_order ASC").Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *BookingRepository) GetTherapyDisciplineByID(ctx context.Context, id string) (*db.BunTherapyDiscipline, error) {
+	var m db.BunTherapyDiscipline
+	err := r.alldb.NewSelect(ctx, &m).Where("id = ?", id).Scan(ctx)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *BookingRepository) GetAppointmentTypeByID(ctx context.Context, id string) (*db.BunAppointmentType, error) {
+	var m db.BunAppointmentType
+	err := r.alldb.NewSelect(ctx, &m).Where("id = ?", id).Scan(ctx)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &m, nil
+}
+
 func (r *BookingRepository) CreateBranchHours(ctx context.Context, m *db.BunBranchHours) error {
 	_, err := r.tenantdb.NewInsert(m).Exec(ctx)
 	return err

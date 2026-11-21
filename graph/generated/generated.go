@@ -35,6 +35,7 @@ type ResolverRoot interface {
 	Appointment() AppointmentResolver
 	AppointmentGoal() AppointmentGoalResolver
 	AppointmentSlot() AppointmentSlotResolver
+	AppointmentType() AppointmentTypeResolver
 	Branch() BranchResolver
 	BranchHours() BranchHoursResolver
 	Guardian() GuardianResolver
@@ -86,11 +87,13 @@ type ComplexityRoot struct {
 	}
 
 	Appointment struct {
+		AppointmentTypeID  func(childComplexity int) int
 		BranchID           func(childComplexity int) int
 		CancellationReason func(childComplexity int) int
 		CancelledAt        func(childComplexity int) int
 		CreatedAt          func(childComplexity int) int
 		CreatedBy          func(childComplexity int) int
+		DisciplineID       func(childComplexity int) int
 		Goals              func(childComplexity int) int
 		ID                 func(childComplexity int) int
 		Note               func(childComplexity int) int
@@ -136,6 +139,19 @@ type ComplexityRoot struct {
 		Status         func(childComplexity int) int
 		UpdatedAt      func(childComplexity int) int
 		UpdatedBy      func(childComplexity int) int
+	}
+
+	AppointmentType struct {
+		Attendees       func(childComplexity int) int
+		Code            func(childComplexity int) int
+		DisciplineMode  func(childComplexity int) int
+		Disciplines     func(childComplexity int) int
+		ID              func(childComplexity int) int
+		IsActive        func(childComplexity int) int
+		Name            func(childComplexity int) int
+		SchedulingNotes func(childComplexity int) int
+		SortOrder       func(childComplexity int) int
+		TypicalDuration func(childComplexity int) int
 	}
 
 	Branch struct {
@@ -392,6 +408,7 @@ type ComplexityRoot struct {
 		Appointment                func(childComplexity int, id string) int
 		AppointmentSlot            func(childComplexity int, id string) int
 		AppointmentSlots           func(childComplexity int, filter model.AppointmentSlotsFilter) int
+		AppointmentTypes           func(childComplexity int) int
 		Appointments               func(childComplexity int, filter model.AppointmentsFilter) int
 		AssignmentsByBranch        func(childComplexity int, branchID string) int
 		AssignmentsByUser          func(childComplexity int, userID string) int
@@ -427,6 +444,7 @@ type ComplexityRoot struct {
 		TenantRole                 func(childComplexity int, id string) int
 		TenantRoles                func(childComplexity int, branchID string) int
 		Tenants                    func(childComplexity int, search *string, limit *int, offset *int) int
+		TherapyDisciplines         func(childComplexity int) int
 		Thread                     func(childComplexity int, id string) int
 		ThreadKey                  func(childComplexity int, threadID string) int
 		ThreadsByParticipant       func(childComplexity int, participantID *string) int
@@ -530,6 +548,14 @@ type ComplexityRoot struct {
 		UserID        func(childComplexity int) int
 	}
 
+	TherapyDiscipline struct {
+		Code      func(childComplexity int) int
+		ID        func(childComplexity int) int
+		IsActive  func(childComplexity int) int
+		Name      func(childComplexity int) int
+		SortOrder func(childComplexity int) int
+	}
+
 	User struct {
 		AppRoles      func(childComplexity int) int
 		Assignments   func(childComplexity int) int
@@ -605,6 +631,9 @@ type AppointmentSlotResolver interface {
 	UpdatedAt(ctx context.Context, obj *db.BunAppointmentSlot) (*string, error)
 
 	Practitioner(ctx context.Context, obj *db.BunAppointmentSlot) (*model.User, error)
+}
+type AppointmentTypeResolver interface {
+	Disciplines(ctx context.Context, obj *db.BunAppointmentType) ([]*db.BunTherapyDiscipline, error)
 }
 type BranchResolver interface {
 	Address(ctx context.Context, obj *db2.BunBranch) (*db2.BunAddress, error)
@@ -771,6 +800,8 @@ type QueryResolver interface {
 	AppointmentSlots(ctx context.Context, filter model.AppointmentSlotsFilter) ([]*db.BunAppointmentSlot, error)
 	Appointment(ctx context.Context, id string) (*db.BunAppointment, error)
 	Appointments(ctx context.Context, filter model.AppointmentsFilter) ([]*db.BunAppointment, error)
+	AppointmentTypes(ctx context.Context) ([]*db.BunAppointmentType, error)
+	TherapyDisciplines(ctx context.Context) ([]*db.BunTherapyDiscipline, error)
 	ScheduleException(ctx context.Context, id string) (*db.BunScheduleException, error)
 	ScheduleExceptions(ctx context.Context, branchID *string, practitionerID *string) ([]*db.BunScheduleException, error)
 	Thread(ctx context.Context, id string) (*db3.BunMessageThread, error)
@@ -957,6 +988,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.AppRole.UpdatedBy(childComplexity), true
 
+	case "Appointment.appointment_type_id":
+		if e.ComplexityRoot.Appointment.AppointmentTypeID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Appointment.AppointmentTypeID(childComplexity), true
 	case "Appointment.branch_id":
 		if e.ComplexityRoot.Appointment.BranchID == nil {
 			break
@@ -987,6 +1024,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Appointment.CreatedBy(childComplexity), true
+	case "Appointment.discipline_id":
+		if e.ComplexityRoot.Appointment.DisciplineID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Appointment.DisciplineID(childComplexity), true
 	case "Appointment.goals":
 		if e.ComplexityRoot.Appointment.Goals == nil {
 			break
@@ -1223,6 +1266,67 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AppointmentSlot.UpdatedBy(childComplexity), true
+
+	case "AppointmentType.attendees":
+		if e.ComplexityRoot.AppointmentType.Attendees == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.Attendees(childComplexity), true
+	case "AppointmentType.code":
+		if e.ComplexityRoot.AppointmentType.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.Code(childComplexity), true
+	case "AppointmentType.disciplineMode":
+		if e.ComplexityRoot.AppointmentType.DisciplineMode == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.DisciplineMode(childComplexity), true
+	case "AppointmentType.disciplines":
+		if e.ComplexityRoot.AppointmentType.Disciplines == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.Disciplines(childComplexity), true
+	case "AppointmentType.id":
+		if e.ComplexityRoot.AppointmentType.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.ID(childComplexity), true
+	case "AppointmentType.isActive":
+		if e.ComplexityRoot.AppointmentType.IsActive == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.IsActive(childComplexity), true
+	case "AppointmentType.name":
+		if e.ComplexityRoot.AppointmentType.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.Name(childComplexity), true
+	case "AppointmentType.schedulingNotes":
+		if e.ComplexityRoot.AppointmentType.SchedulingNotes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.SchedulingNotes(childComplexity), true
+	case "AppointmentType.sortOrder":
+		if e.ComplexityRoot.AppointmentType.SortOrder == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.SortOrder(childComplexity), true
+	case "AppointmentType.typicalDuration":
+		if e.ComplexityRoot.AppointmentType.TypicalDuration == nil {
+			break
+		}
+
+		return e.ComplexityRoot.AppointmentType.TypicalDuration(childComplexity), true
 
 	case "Branch.address":
 		if e.ComplexityRoot.Branch.Address == nil {
@@ -2860,6 +2964,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.AppointmentSlots(childComplexity, args["filter"].(model.AppointmentSlotsFilter)), true
+	case "Query.appointmentTypes":
+		if e.ComplexityRoot.Query.AppointmentTypes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.AppointmentTypes(childComplexity), true
 	case "Query.appointments":
 		if e.ComplexityRoot.Query.Appointments == nil {
 			break
@@ -3226,6 +3336,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Tenants(childComplexity, args["search"].(*string), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.therapyDisciplines":
+		if e.ComplexityRoot.Query.TherapyDisciplines == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.TherapyDisciplines(childComplexity), true
 	case "Query.thread":
 		if e.ComplexityRoot.Query.Thread == nil {
 			break
@@ -3726,6 +3842,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.TenantUserAssignment.UserID(childComplexity), true
+
+	case "TherapyDiscipline.code":
+		if e.ComplexityRoot.TherapyDiscipline.Code == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TherapyDiscipline.Code(childComplexity), true
+	case "TherapyDiscipline.id":
+		if e.ComplexityRoot.TherapyDiscipline.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TherapyDiscipline.ID(childComplexity), true
+	case "TherapyDiscipline.isActive":
+		if e.ComplexityRoot.TherapyDiscipline.IsActive == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TherapyDiscipline.IsActive(childComplexity), true
+	case "TherapyDiscipline.name":
+		if e.ComplexityRoot.TherapyDiscipline.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TherapyDiscipline.Name(childComplexity), true
+	case "TherapyDiscipline.sortOrder":
+		if e.ComplexityRoot.TherapyDiscipline.SortOrder == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TherapyDiscipline.SortOrder(childComplexity), true
 
 	case "User.appRoles":
 		if e.ComplexityRoot.User.AppRoles == nil {
@@ -4486,11 +4633,34 @@ type AppointmentSlot {
   practitioner: User
 }
 
+type AppointmentType {
+  id: ID!
+  code: String!
+  name: String!
+  attendees: String!
+  typicalDuration: String!
+  schedulingNotes: String!
+  disciplineMode: String!
+  sortOrder: Int!
+  isActive: Boolean!
+  disciplines: [TherapyDiscipline!]!
+}
+
+type TherapyDiscipline {
+  id: ID!
+  code: String!
+  name: String!
+  sortOrder: Int!
+  isActive: Boolean!
+}
+
 type Appointment {
   id: ID!
   branch_id: ID!
   patient_id: ID!
   practitioner_id: ID!
+  appointment_type_id: ID
+  discipline_id: ID
   scheduled_start: DateTime!
   scheduled_end: DateTime!
   status: String!
@@ -4600,6 +4770,8 @@ input AppointmentInput {
   scheduled_end: DateTime!
   note: String
   slot_id: ID
+  appointment_type_id: ID
+  discipline_id: ID
 }
 
 input AppointmentUpdateInput {
@@ -4776,6 +4948,8 @@ type Query {
   appointmentSlots(filter: AppointmentSlotsFilter!): [AppointmentSlot!]!
   appointment(id: ID!): Appointment
   appointments(filter: AppointmentsFilter!): [Appointment!]!
+  appointmentTypes: [AppointmentType!]!
+  therapyDisciplines: [TherapyDiscipline!]!
   scheduleException(id: ID!): ScheduleException
   scheduleExceptions(branch_id: ID, practitioner_id: ID): [ScheduleException!]!
   thread(id: ID!): MessageThread
@@ -4942,6 +5116,10 @@ func (ec *executionContext) childFields_Appointment(ctx context.Context, field g
 		return ec.fieldContext_Appointment_patient_id(ctx, field)
 	case "practitioner_id":
 		return ec.fieldContext_Appointment_practitioner_id(ctx, field)
+	case "appointment_type_id":
+		return ec.fieldContext_Appointment_appointment_type_id(ctx, field)
+	case "discipline_id":
+		return ec.fieldContext_Appointment_discipline_id(ctx, field)
 	case "scheduled_start":
 		return ec.fieldContext_Appointment_scheduled_start(ctx, field)
 	case "scheduled_end":
@@ -5036,6 +5214,32 @@ func (ec *executionContext) childFields_AppointmentSlot(ctx context.Context, fie
 		return ec.fieldContext_AppointmentSlot_practitioner(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type AppointmentSlot", field.Name)
+}
+
+func (ec *executionContext) childFields_AppointmentType(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_AppointmentType_id(ctx, field)
+	case "code":
+		return ec.fieldContext_AppointmentType_code(ctx, field)
+	case "name":
+		return ec.fieldContext_AppointmentType_name(ctx, field)
+	case "attendees":
+		return ec.fieldContext_AppointmentType_attendees(ctx, field)
+	case "typicalDuration":
+		return ec.fieldContext_AppointmentType_typicalDuration(ctx, field)
+	case "schedulingNotes":
+		return ec.fieldContext_AppointmentType_schedulingNotes(ctx, field)
+	case "disciplineMode":
+		return ec.fieldContext_AppointmentType_disciplineMode(ctx, field)
+	case "sortOrder":
+		return ec.fieldContext_AppointmentType_sortOrder(ctx, field)
+	case "isActive":
+		return ec.fieldContext_AppointmentType_isActive(ctx, field)
+	case "disciplines":
+		return ec.fieldContext_AppointmentType_disciplines(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type AppointmentType", field.Name)
 }
 
 func (ec *executionContext) childFields_Branch(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -5538,6 +5742,22 @@ func (ec *executionContext) childFields_TenantUserAssignment(ctx context.Context
 		return ec.fieldContext_TenantUserAssignment_isActive(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type TenantUserAssignment", field.Name)
+}
+
+func (ec *executionContext) childFields_TherapyDiscipline(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_TherapyDiscipline_id(ctx, field)
+	case "code":
+		return ec.fieldContext_TherapyDiscipline_code(ctx, field)
+	case "name":
+		return ec.fieldContext_TherapyDiscipline_name(ctx, field)
+	case "sortOrder":
+		return ec.fieldContext_TherapyDiscipline_sortOrder(ctx, field)
+	case "isActive":
+		return ec.fieldContext_TherapyDiscipline_isActive(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TherapyDiscipline", field.Name)
 }
 
 func (ec *executionContext) childFields_User(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -8360,6 +8580,52 @@ func (ec *executionContext) fieldContext_Appointment_practitioner_id(_ context.C
 	return graphql.NewScalarFieldContext("Appointment", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
+func (ec *executionContext) _Appointment_appointment_type_id(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Appointment_appointment_type_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AppointmentTypeID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOID2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Appointment_appointment_type_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Appointment", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Appointment_discipline_id(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Appointment_discipline_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DisciplineID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOID2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Appointment_discipline_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Appointment", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
 func (ec *executionContext) _Appointment_scheduled_start(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9329,6 +9595,245 @@ func (ec *executionContext) fieldContext_AppointmentSlot_practitioner(_ context.
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_User(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AppointmentType_id(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_code(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_name(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_attendees(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_attendees(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Attendees, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_attendees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_typicalDuration(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_typicalDuration(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TypicalDuration, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_typicalDuration(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_schedulingNotes(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_schedulingNotes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SchedulingNotes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_schedulingNotes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_disciplineMode(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_disciplineMode(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DisciplineMode, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_disciplineMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_sortOrder(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_sortOrder(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_isActive(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_isActive(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("AppointmentType", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _AppointmentType_disciplines(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointmentType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_AppointmentType_disciplines(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.AppointmentType().Disciplines(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*db.BunTherapyDiscipline) graphql.Marshaler {
+			return ec.marshalNTherapyDiscipline2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunTherapyDisciplineᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_AppointmentType_disciplines(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AppointmentType",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TherapyDiscipline(ctx, field)
 		},
 	}
 	return fc, nil
@@ -17035,6 +17540,70 @@ func (ec *executionContext) fieldContext_Query_appointments(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_appointmentTypes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_appointmentTypes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().AppointmentTypes(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*db.BunAppointmentType) graphql.Marshaler {
+			return ec.marshalNAppointmentType2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunAppointmentTypeᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_appointmentTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_AppointmentType(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_therapyDisciplines(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_therapyDisciplines(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().TherapyDisciplines(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*db.BunTherapyDiscipline) graphql.Marshaler {
+			return ec.marshalNTherapyDiscipline2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunTherapyDisciplineᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_therapyDisciplines(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TherapyDiscipline(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_scheduleException(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19332,6 +19901,121 @@ func (ec *executionContext) fieldContext_TenantUserAssignment_isActive(_ context
 	return graphql.NewScalarFieldContext("TenantUserAssignment", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
+func (ec *executionContext) _TherapyDiscipline_id(ctx context.Context, field graphql.CollectedField, obj *db.BunTherapyDiscipline) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TherapyDiscipline_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TherapyDiscipline_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _TherapyDiscipline_code(ctx context.Context, field graphql.CollectedField, obj *db.BunTherapyDiscipline) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TherapyDiscipline_code(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Code, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TherapyDiscipline_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TherapyDiscipline_name(ctx context.Context, field graphql.CollectedField, obj *db.BunTherapyDiscipline) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TherapyDiscipline_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TherapyDiscipline_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TherapyDiscipline_sortOrder(ctx context.Context, field graphql.CollectedField, obj *db.BunTherapyDiscipline) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TherapyDiscipline_sortOrder(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TherapyDiscipline_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TherapyDiscipline_isActive(ctx context.Context, field graphql.CollectedField, obj *db.BunTherapyDiscipline) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TherapyDiscipline_isActive(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TherapyDiscipline_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -21283,7 +21967,7 @@ func (ec *executionContext) unmarshalInputAppointmentInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"patient_id", "practitioner_id", "scheduled_start", "scheduled_end", "note", "slot_id"}
+	fieldsInOrder := [...]string{"patient_id", "practitioner_id", "scheduled_start", "scheduled_end", "note", "slot_id", "appointment_type_id", "discipline_id"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -21332,6 +22016,20 @@ func (ec *executionContext) unmarshalInputAppointmentInput(ctx context.Context, 
 				return it, err
 			}
 			it.SlotID = data
+		case "appointment_type_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("appointment_type_id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AppointmentTypeID = data
+		case "discipline_id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discipline_id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisciplineID = data
 		}
 	}
 	return it, nil
@@ -23572,6 +24270,16 @@ func (ec *executionContext) _Appointment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "appointment_type_id":
+			out.Values[i] = ec._Appointment_appointment_type_id(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "discipline_id":
+			out.Values[i] = ec._Appointment_discipline_id(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "scheduled_start":
 			field := field
 
@@ -24504,6 +25212,122 @@ func (ec *executionContext) _AppointmentSlot(ctx context.Context, sel ast.Select
 				}()
 				res = ec._AppointmentSlot_practitioner(ctx, field, obj)
 				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var appointmentTypeImplementors = []string{"AppointmentType"}
+
+func (ec *executionContext) _AppointmentType(ctx context.Context, sel ast.SelectionSet, obj *db.BunAppointmentType) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, appointmentTypeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AppointmentType")
+		case "id":
+			out.Values[i] = ec._AppointmentType_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "code":
+			out.Values[i] = ec._AppointmentType_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._AppointmentType_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "attendees":
+			out.Values[i] = ec._AppointmentType_attendees(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "typicalDuration":
+			out.Values[i] = ec._AppointmentType_typicalDuration(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "schedulingNotes":
+			out.Values[i] = ec._AppointmentType_schedulingNotes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "disciplineMode":
+			out.Values[i] = ec._AppointmentType_disciplineMode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "sortOrder":
+			out.Values[i] = ec._AppointmentType_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "isActive":
+			out.Values[i] = ec._AppointmentType_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "disciplines":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._AppointmentType_disciplines(ctx, field, obj)
+				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
 				return res
@@ -27994,6 +28818,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "appointmentTypes":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_appointmentTypes(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "therapyDisciplines":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_therapyDisciplines(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "scheduleException":
 			field := field
 
@@ -29506,6 +30374,64 @@ func (ec *executionContext) _TenantUserAssignment(ctx context.Context, sel ast.S
 	return out
 }
 
+var therapyDisciplineImplementors = []string{"TherapyDiscipline"}
+
+func (ec *executionContext) _TherapyDiscipline(ctx context.Context, sel ast.SelectionSet, obj *db.BunTherapyDiscipline) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, therapyDisciplineImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TherapyDiscipline")
+		case "id":
+			out.Values[i] = ec._TherapyDiscipline_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			out.Values[i] = ec._TherapyDiscipline_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._TherapyDiscipline_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sortOrder":
+			out.Values[i] = ec._TherapyDiscipline_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._TherapyDiscipline_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
@@ -30286,6 +31212,32 @@ func (ec *executionContext) marshalNAppointmentSlot2ᚖgithubᚗcomᚋclinicmana
 func (ec *executionContext) unmarshalNAppointmentSlotsFilter2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐAppointmentSlotsFilter(ctx context.Context, v any) (model.AppointmentSlotsFilter, error) {
 	res, err := ec.unmarshalInputAppointmentSlotsFilter(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAppointmentType2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunAppointmentTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []*db.BunAppointmentType) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNAppointmentType2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunAppointmentType(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAppointmentType2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunAppointmentType(ctx context.Context, sel ast.SelectionSet, v *db.BunAppointmentType) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AppointmentType(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNAppointmentUpdateInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐAppointmentUpdateInput(ctx context.Context, v any) (model.AppointmentUpdateInput, error) {
@@ -31215,6 +32167,32 @@ func (ec *executionContext) marshalNTenantUserAssignment2ᚖgithubᚗcomᚋclini
 		return graphql.Null
 	}
 	return ec._TenantUserAssignment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTherapyDiscipline2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunTherapyDisciplineᚄ(ctx context.Context, sel ast.SelectionSet, v []*db.BunTherapyDiscipline) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTherapyDiscipline2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunTherapyDiscipline(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTherapyDiscipline2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunTherapyDiscipline(ctx context.Context, sel ast.SelectionSet, v *db.BunTherapyDiscipline) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TherapyDiscipline(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNThreadInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐThreadInput(ctx context.Context, v any) (model.ThreadInput, error) {

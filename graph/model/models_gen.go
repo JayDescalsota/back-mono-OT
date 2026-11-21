@@ -41,12 +41,14 @@ type AppointmentGoalUpdateInput struct {
 }
 
 type AppointmentInput struct {
-	PatientID      string  `json:"patient_id"`
-	PractitionerID string  `json:"practitioner_id"`
-	ScheduledStart string  `json:"scheduled_start"`
-	ScheduledEnd   string  `json:"scheduled_end"`
-	Note           *string `json:"note,omitempty"`
-	SlotID         *string `json:"slot_id,omitempty"`
+	PatientID         string  `json:"patient_id"`
+	PractitionerID    string  `json:"practitioner_id"`
+	ScheduledStart    string  `json:"scheduled_start"`
+	ScheduledEnd      string  `json:"scheduled_end"`
+	Note              *string `json:"note,omitempty"`
+	SlotID            *string `json:"slot_id,omitempty"`
+	AppointmentTypeID *string `json:"appointment_type_id,omitempty"`
+	DisciplineID      *string `json:"discipline_id,omitempty"`
 }
 
 type AppointmentSlotsFilter struct {

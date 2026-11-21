@@ -40,6 +40,10 @@ models:
     model: github.com/clinicmanager/services/booking/db.BunPractitionerAvailability
   ScheduleTemplate:
     model: github.com/clinicmanager/services/booking/db.BunScheduleTemplate
+  AppointmentType:
+    model: github.com/clinicmanager/services/booking/db.BunAppointmentType
+  TherapyDiscipline:
+    model: github.com/clinicmanager/services/booking/db.BunTherapyDiscipline
   AppointmentSlot:
     model: github.com/clinicmanager/services/booking/db.BunAppointmentSlot
   Appointment:

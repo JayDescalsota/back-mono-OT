@@ -191,3 +191,42 @@ CREATE TABLE IF NOT EXISTS booking_soap_notes (
 
 CREATE INDEX idx_booking_soap_notes_appointment ON booking_soap_notes (appointment_id);
 
+-- Appointment type lookup for the New Appointment modal.
+CREATE TABLE booking_appointment_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    attendees TEXT NOT NULL DEFAULT '',
+    typical_duration TEXT NOT NULL DEFAULT '',
+    scheduling_notes TEXT NOT NULL DEFAULT '',
+    discipline_mode TEXT NOT NULL DEFAULT 'hidden',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+-- Therapy discipline lookup shared by all appointment types.
+CREATE TABLE booking_disciplines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+-- Which disciplines each appointment type offers. Disciplines keep their
+-- single stable IDs; this table only links sets to types.
+CREATE TABLE booking_appointment_type_disciplines (
+    appointment_type_id UUID NOT NULL REFERENCES booking_appointment_types(id) ON DELETE CASCADE,
+    discipline_id UUID NOT NULL REFERENCES booking_disciplines(id) ON DELETE CASCADE,
+    PRIMARY KEY (appointment_type_id, discipline_id)
+);
+
+ALTER TABLE booking_appointments
+    ADD COLUMN appointment_type_id UUID REFERENCES booking_appointment_types(id) ON DELETE SET NULL;
+ALTER TABLE booking_appointments
+    ADD COLUMN discipline_id UUID REFERENCES booking_disciplines(id) ON DELETE SET NULL;
+

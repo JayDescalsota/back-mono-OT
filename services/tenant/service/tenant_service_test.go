@@ -418,6 +418,36 @@ func TestSetRolePermissionsRoleNotFound(t *testing.T) {
 	}
 }
 
+func TestSeedBranchDefaultsIncludeAssessmentsFull(t *testing.T) {
+	f := &fakeRepo{}
+	svc, _, _ := newSvc(f)
+	if _, err := svc.SeedBranchDefaults(context.Background(), "b1"); err != nil {
+		t.Fatalf("SeedBranchDefaults: %v", err)
+	}
+	seeded := map[string]string{}
+	for _, p := range f.createdPerms {
+		if p.Resource == "assessments" {
+			seeded[p.Action] = p.ID
+		}
+	}
+	for _, action := range []string{"access", "read", "write", "delete"} {
+		id, ok := seeded[action]
+		if !ok {
+			t.Fatalf("assessments %q definition was not seeded", action)
+		}
+		found := false
+		for _, rid := range f.replacedPerms {
+			if rid == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("assessments %q not in default role mapping: %v", action, f.replacedPerms)
+		}
+	}
+}
+
 func TestInviteCreatesPendingInviteAndSendsLink(t *testing.T) {
 	f := &fakeRepo{}
 	svc, m, _ := newSvc(f)
