@@ -101,6 +101,7 @@ type ComplexityRoot struct {
 		PatientID          func(childComplexity int) int
 		Practitioner       func(childComplexity int) int
 		PractitionerID     func(childComplexity int) int
+		PriceCents         func(childComplexity int) int
 		RescheduleReason   func(childComplexity int) int
 		RescheduledFromID  func(childComplexity int) int
 		RescheduledToID    func(childComplexity int) int
@@ -175,6 +176,18 @@ type ComplexityRoot struct {
 		OpenTime  func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 		UpdatedBy func(childComplexity int) int
+	}
+
+	BranchPaymentSettings struct {
+		BranchID    func(childComplexity int) int
+		PaymentMode func(childComplexity int) int
+	}
+
+	BranchService struct {
+		AppointmentTypeID func(childComplexity int) int
+		ID                func(childComplexity int) int
+		IsOffered         func(childComplexity int) int
+		PriceCents        func(childComplexity int) int
 	}
 
 	Goal struct {
@@ -258,6 +271,7 @@ type ComplexityRoot struct {
 		CreateGuardian                 func(childComplexity int, input model.GuardianInput) int
 		CreatePatient                  func(childComplexity int, input model.PatientInput) int
 		CreatePatientAddress           func(childComplexity int, patientID string, input model.PatientAddressInput) int
+		CreatePaymentTopUp             func(childComplexity int, patientID string, amountCents int, appointmentID *string) int
 		CreatePlatformUser             func(childComplexity int, input model.CreatePlatformUserInput) int
 		CreatePractitionerAvailability func(childComplexity int, input model.PractitionerAvailabilityInput) int
 		CreatePractitionerBranch       func(childComplexity int, input model.PractitionerBranchInput) int
@@ -279,10 +293,12 @@ type ComplexityRoot struct {
 		DeleteScheduleTemplate         func(childComplexity int, id string) int
 		DeleteThread                   func(childComplexity int, id string) int
 		GenerateSlots                  func(childComplexity int, branchID string, practitionerID string, date string) int
+		HoldAppointmentFunds           func(childComplexity int, appointmentID string, patientID string, amountCents int) int
 		InactivatePatient              func(childComplexity int, id string) int
 		InviteUser                     func(childComplexity int, email string, branchID string, roleID string) int
 		ReactivatePatient              func(childComplexity int, id string) int
 		RegisterPublicKey              func(childComplexity int, publicKey string) int
+		ReleaseAppointmentFunds        func(childComplexity int, appointmentID string) int
 		RemoveAppointmentGoal          func(childComplexity int, id string) int
 		RemoveBranchAssignment         func(childComplexity int, id string) int
 		RemoveParticipant              func(childComplexity int, id string) int
@@ -296,6 +312,8 @@ type ComplexityRoot struct {
 		SetAppointmentGoals            func(childComplexity int, appointmentID string, goalIds []string) int
 		SetAssignmentActive            func(childComplexity int, id string, isActive bool) int
 		SetBranchActive                func(childComplexity int, id string, isActive bool) int
+		SetBranchPaymentMode           func(childComplexity int, mode string) int
+		SetBranchService               func(childComplexity int, appointmentTypeID string, priceCents int, isOffered bool) int
 		SetRoleActive                  func(childComplexity int, id string, isActive bool) int
 		SetRolePermissions             func(childComplexity int, input model.SetRolePermissionsInput) int
 		SetTenantStatus                func(childComplexity int, id string, status string) int
@@ -360,6 +378,25 @@ type ComplexityRoot struct {
 		Name func(childComplexity int) int
 	}
 
+	PaymentLedgerEntry struct {
+		AmountCents       func(childComplexity int) int
+		AppointmentID     func(childComplexity int) int
+		BalanceAfterCents func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		ID                func(childComplexity int) int
+		Note              func(childComplexity int) int
+		Type              func(childComplexity int) int
+	}
+
+	PaymentTopUp struct {
+		AmountCents func(childComplexity int) int
+		CheckoutURL func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Provider    func(childComplexity int) int
+		Status      func(childComplexity int) int
+	}
+
 	PractitionerAvailability struct {
 		BranchID       func(childComplexity int) int
 		CreatedAt      func(childComplexity int) int
@@ -415,6 +452,8 @@ type ComplexityRoot struct {
 		Branch                     func(childComplexity int, id string) int
 		BranchHour                 func(childComplexity int, id string) int
 		BranchHours                func(childComplexity int, branchID *string) int
+		BranchPaymentMode          func(childComplexity int) int
+		BranchServices             func(childComplexity int) int
 		BranchesByTenant           func(childComplexity int, tenantID string) int
 		Guardian                   func(childComplexity int, id string) int
 		InviteByToken              func(childComplexity int, token string) int
@@ -429,6 +468,9 @@ type ComplexityRoot struct {
 		Patients                   func(childComplexity int, filter *model.PatientsFilter) int
 		PatientsByIds              func(childComplexity int, ids []string) int
 		PatientsForMessaging       func(childComplexity int, search string, limit *int) int
+		PaymentLedger              func(childComplexity int, patientID string, limit *int) int
+		PaymentWallet              func(childComplexity int, patientID string) int
+		PendingTopUps              func(childComplexity int, patientID string) int
 		PlatformUsers              func(childComplexity int, search *string, appRole *string, tenantID *string, branchID *string) int
 		PractitionerAvailabilities func(childComplexity int, branchID *string, practitionerID *string) int
 		PractitionerAvailability   func(childComplexity int, id string) int
@@ -556,6 +598,13 @@ type ComplexityRoot struct {
 		SortOrder func(childComplexity int) int
 	}
 
+	TopUpResult struct {
+		AmountCents func(childComplexity int) int
+		CheckoutURL func(childComplexity int) int
+		Status      func(childComplexity int) int
+		TopUpID     func(childComplexity int) int
+	}
+
 	User struct {
 		AppRoles      func(childComplexity int) int
 		Assignments   func(childComplexity int) int
@@ -592,6 +641,14 @@ type ComplexityRoot struct {
 		Timezone                 func(childComplexity int) int
 		Title                    func(childComplexity int) int
 		UserID                   func(childComplexity int) int
+	}
+
+	WalletSummary struct {
+		BalanceCents   func(childComplexity int) int
+		HeldCents      func(childComplexity int) int
+		PatientID      func(childComplexity int) int
+		SpendableCents func(childComplexity int) int
+		WalletID       func(childComplexity int) int
 	}
 }
 
@@ -739,6 +796,11 @@ type MutationResolver interface {
 	AddParticipant(ctx context.Context, input model.ParticipantInput) (*db3.BunMessageParticipant, error)
 	RemoveParticipant(ctx context.Context, id string) (bool, error)
 	RegisterPublicKey(ctx context.Context, publicKey string) (bool, error)
+	CreatePaymentTopUp(ctx context.Context, patientID string, amountCents int, appointmentID *string) (*model.TopUpResult, error)
+	SetBranchService(ctx context.Context, appointmentTypeID string, priceCents int, isOffered bool) (*model.BranchService, error)
+	SetBranchPaymentMode(ctx context.Context, mode string) (*model.BranchPaymentSettings, error)
+	HoldAppointmentFunds(ctx context.Context, appointmentID string, patientID string, amountCents int) (bool, error)
+	ReleaseAppointmentFunds(ctx context.Context, appointmentID string) (bool, error)
 }
 type PatientResolver interface {
 	DateOfBirth(ctx context.Context, obj *db1.BunPatients) (string, error)
@@ -814,6 +876,11 @@ type QueryResolver interface {
 	BranchesByTenant(ctx context.Context, tenantID string) ([]*db2.BunBranch, error)
 	PlatformUsers(ctx context.Context, search *string, appRole *string, tenantID *string, branchID *string) ([]*model.User, error)
 	AppRoles(ctx context.Context) ([]*model.AppRole, error)
+	PaymentWallet(ctx context.Context, patientID string) (*model.WalletSummary, error)
+	PaymentLedger(ctx context.Context, patientID string, limit *int) ([]*model.PaymentLedgerEntry, error)
+	PendingTopUps(ctx context.Context, patientID string) ([]*model.PaymentTopUp, error)
+	BranchServices(ctx context.Context) ([]*model.BranchService, error)
+	BranchPaymentMode(ctx context.Context) (string, error)
 }
 type ScheduleExceptionResolver interface {
 	BranchID(ctx context.Context, obj *db.BunScheduleException) (string, error)
@@ -1072,6 +1139,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Appointment.PractitionerID(childComplexity), true
+	case "Appointment.priceCents":
+		if e.ComplexityRoot.Appointment.PriceCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Appointment.PriceCents(childComplexity), true
 	case "Appointment.reschedule_reason":
 		if e.ComplexityRoot.Appointment.RescheduleReason == nil {
 			break
@@ -1431,6 +1504,44 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.BranchHours.UpdatedBy(childComplexity), true
+
+	case "BranchPaymentSettings.branchId":
+		if e.ComplexityRoot.BranchPaymentSettings.BranchID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchPaymentSettings.BranchID(childComplexity), true
+	case "BranchPaymentSettings.paymentMode":
+		if e.ComplexityRoot.BranchPaymentSettings.PaymentMode == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchPaymentSettings.PaymentMode(childComplexity), true
+
+	case "BranchService.appointmentTypeId":
+		if e.ComplexityRoot.BranchService.AppointmentTypeID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchService.AppointmentTypeID(childComplexity), true
+	case "BranchService.id":
+		if e.ComplexityRoot.BranchService.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchService.ID(childComplexity), true
+	case "BranchService.isOffered":
+		if e.ComplexityRoot.BranchService.IsOffered == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchService.IsOffered(childComplexity), true
+	case "BranchService.priceCents":
+		if e.ComplexityRoot.BranchService.PriceCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchService.PriceCents(childComplexity), true
 
 	case "Goal.goal":
 		if e.ComplexityRoot.Goal.Goal == nil {
@@ -1880,6 +1991,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreatePatientAddress(childComplexity, args["patientId"].(string), args["input"].(model.PatientAddressInput)), true
+	case "Mutation.createPaymentTopUp":
+		if e.ComplexityRoot.Mutation.CreatePaymentTopUp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createPaymentTopUp_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreatePaymentTopUp(childComplexity, args["patientId"].(string), args["amountCents"].(int), args["appointmentId"].(*string)), true
 	case "Mutation.createPlatformUser":
 		if e.ComplexityRoot.Mutation.CreatePlatformUser == nil {
 			break
@@ -2111,6 +2233,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.GenerateSlots(childComplexity, args["branch_id"].(string), args["practitioner_id"].(string), args["date"].(string)), true
+	case "Mutation.holdAppointmentFunds":
+		if e.ComplexityRoot.Mutation.HoldAppointmentFunds == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_holdAppointmentFunds_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.HoldAppointmentFunds(childComplexity, args["appointmentId"].(string), args["patientId"].(string), args["amountCents"].(int)), true
 	case "Mutation.inactivatePatient":
 		if e.ComplexityRoot.Mutation.InactivatePatient == nil {
 			break
@@ -2155,6 +2288,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RegisterPublicKey(childComplexity, args["public_key"].(string)), true
+	case "Mutation.releaseAppointmentFunds":
+		if e.ComplexityRoot.Mutation.ReleaseAppointmentFunds == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_releaseAppointmentFunds_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReleaseAppointmentFunds(childComplexity, args["appointmentId"].(string)), true
 	case "Mutation.removeAppointmentGoal":
 		if e.ComplexityRoot.Mutation.RemoveAppointmentGoal == nil {
 			break
@@ -2298,6 +2442,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SetBranchActive(childComplexity, args["id"].(string), args["isActive"].(bool)), true
+	case "Mutation.setBranchPaymentMode":
+		if e.ComplexityRoot.Mutation.SetBranchPaymentMode == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setBranchPaymentMode_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetBranchPaymentMode(childComplexity, args["mode"].(string)), true
+	case "Mutation.setBranchService":
+		if e.ComplexityRoot.Mutation.SetBranchService == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setBranchService_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SetBranchService(childComplexity, args["appointmentTypeId"].(string), args["priceCents"].(int), args["isOffered"].(bool)), true
 	case "Mutation.setRoleActive":
 		if e.ComplexityRoot.Mutation.SetRoleActive == nil {
 			break
@@ -2713,6 +2879,86 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.PatientTags.Name(childComplexity), true
 
+	case "PaymentLedgerEntry.amountCents":
+		if e.ComplexityRoot.PaymentLedgerEntry.AmountCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.AmountCents(childComplexity), true
+	case "PaymentLedgerEntry.appointmentId":
+		if e.ComplexityRoot.PaymentLedgerEntry.AppointmentID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.AppointmentID(childComplexity), true
+	case "PaymentLedgerEntry.balanceAfterCents":
+		if e.ComplexityRoot.PaymentLedgerEntry.BalanceAfterCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.BalanceAfterCents(childComplexity), true
+	case "PaymentLedgerEntry.createdAt":
+		if e.ComplexityRoot.PaymentLedgerEntry.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.CreatedAt(childComplexity), true
+	case "PaymentLedgerEntry.id":
+		if e.ComplexityRoot.PaymentLedgerEntry.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.ID(childComplexity), true
+	case "PaymentLedgerEntry.note":
+		if e.ComplexityRoot.PaymentLedgerEntry.Note == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.Note(childComplexity), true
+	case "PaymentLedgerEntry.type":
+		if e.ComplexityRoot.PaymentLedgerEntry.Type == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentLedgerEntry.Type(childComplexity), true
+
+	case "PaymentTopUp.amountCents":
+		if e.ComplexityRoot.PaymentTopUp.AmountCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.AmountCents(childComplexity), true
+	case "PaymentTopUp.checkoutUrl":
+		if e.ComplexityRoot.PaymentTopUp.CheckoutURL == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.CheckoutURL(childComplexity), true
+	case "PaymentTopUp.createdAt":
+		if e.ComplexityRoot.PaymentTopUp.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.CreatedAt(childComplexity), true
+	case "PaymentTopUp.id":
+		if e.ComplexityRoot.PaymentTopUp.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.ID(childComplexity), true
+	case "PaymentTopUp.provider":
+		if e.ComplexityRoot.PaymentTopUp.Provider == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.Provider(childComplexity), true
+	case "PaymentTopUp.status":
+		if e.ComplexityRoot.PaymentTopUp.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PaymentTopUp.Status(childComplexity), true
+
 	case "PractitionerAvailability.branch_id":
 		if e.ComplexityRoot.PractitionerAvailability.BranchID == nil {
 			break
@@ -3036,6 +3282,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.BranchHours(childComplexity, args["branch_id"].(*string)), true
+	case "Query.branchPaymentMode":
+		if e.ComplexityRoot.Query.BranchPaymentMode == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.BranchPaymentMode(childComplexity), true
+	case "Query.branchServices":
+		if e.ComplexityRoot.Query.BranchServices == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.BranchServices(childComplexity), true
 	case "Query.branchesByTenant":
 		if e.ComplexityRoot.Query.BranchesByTenant == nil {
 			break
@@ -3171,6 +3429,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.PatientsForMessaging(childComplexity, args["search"].(string), args["limit"].(*int)), true
+	case "Query.paymentLedger":
+		if e.ComplexityRoot.Query.PaymentLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_paymentLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.PaymentLedger(childComplexity, args["patientId"].(string), args["limit"].(*int)), true
+	case "Query.paymentWallet":
+		if e.ComplexityRoot.Query.PaymentWallet == nil {
+			break
+		}
+
+		args, err := ec.field_Query_paymentWallet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.PaymentWallet(childComplexity, args["patientId"].(string)), true
+	case "Query.pendingTopUps":
+		if e.ComplexityRoot.Query.PendingTopUps == nil {
+			break
+		}
+
+		args, err := ec.field_Query_pendingTopUps_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.PendingTopUps(childComplexity, args["patientId"].(string)), true
 	case "Query.platformUsers":
 		if e.ComplexityRoot.Query.PlatformUsers == nil {
 			break
@@ -3874,6 +4165,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.TherapyDiscipline.SortOrder(childComplexity), true
 
+	case "TopUpResult.amountCents":
+		if e.ComplexityRoot.TopUpResult.AmountCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TopUpResult.AmountCents(childComplexity), true
+	case "TopUpResult.checkoutUrl":
+		if e.ComplexityRoot.TopUpResult.CheckoutURL == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TopUpResult.CheckoutURL(childComplexity), true
+	case "TopUpResult.status":
+		if e.ComplexityRoot.TopUpResult.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TopUpResult.Status(childComplexity), true
+	case "TopUpResult.topUpId":
+		if e.ComplexityRoot.TopUpResult.TopUpID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TopUpResult.TopUpID(childComplexity), true
+
 	case "User.appRoles":
 		if e.ComplexityRoot.User.AppRoles == nil {
 			break
@@ -4067,6 +4383,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.UserProfile.UserID(childComplexity), true
+
+	case "WalletSummary.balanceCents":
+		if e.ComplexityRoot.WalletSummary.BalanceCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WalletSummary.BalanceCents(childComplexity), true
+	case "WalletSummary.heldCents":
+		if e.ComplexityRoot.WalletSummary.HeldCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WalletSummary.HeldCents(childComplexity), true
+	case "WalletSummary.patientId":
+		if e.ComplexityRoot.WalletSummary.PatientID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WalletSummary.PatientID(childComplexity), true
+	case "WalletSummary.spendableCents":
+		if e.ComplexityRoot.WalletSummary.SpendableCents == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WalletSummary.SpendableCents(childComplexity), true
+	case "WalletSummary.walletId":
+		if e.ComplexityRoot.WalletSummary.WalletID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.WalletSummary.WalletID(childComplexity), true
 
 	}
 	return 0, false
@@ -4654,6 +5001,52 @@ type TherapyDiscipline {
   isActive: Boolean!
 }
 
+type WalletSummary {
+  walletId: ID!
+  patientId: ID!
+  balanceCents: Int!
+  heldCents: Int!
+  spendableCents: Int!
+}
+
+type PaymentLedgerEntry {
+  id: ID!
+  type: String!
+  amountCents: Int!
+  balanceAfterCents: Int!
+  appointmentId: ID
+  note: String!
+  createdAt: DateTime!
+}
+
+type PaymentTopUp {
+  id: ID!
+  amountCents: Int!
+  provider: String!
+  status: String!
+  checkoutUrl: String!
+  createdAt: DateTime!
+}
+
+type TopUpResult {
+  topUpId: ID!
+  checkoutUrl: String!
+  amountCents: Int!
+  status: String!
+}
+
+type BranchService {
+  id: ID!
+  appointmentTypeId: ID!
+  priceCents: Int!
+  isOffered: Boolean!
+}
+
+type BranchPaymentSettings {
+  branchId: ID!
+  paymentMode: String!
+}
+
 type Appointment {
   id: ID!
   branch_id: ID!
@@ -4661,6 +5054,7 @@ type Appointment {
   practitioner_id: ID!
   appointment_type_id: ID
   discipline_id: ID
+  priceCents: Int!
   scheduled_start: DateTime!
   scheduled_end: DateTime!
   status: String!
@@ -4962,6 +5356,11 @@ type Query {
   branchesByTenant(tenantId: ID!): [Branch!]!
   platformUsers(search: String, appRole: String, tenantId: ID, branchId: ID): [User!]!
   appRoles: [AppRole!]!
+  paymentWallet(patientId: ID!): WalletSummary!
+  paymentLedger(patientId: ID!, limit: Int = 50): [PaymentLedgerEntry!]!
+  pendingTopUps(patientId: ID!): [PaymentTopUp!]!
+  branchServices: [BranchService!]!
+  branchPaymentMode: String!
 }
 
 type Mutation {
@@ -5039,6 +5438,11 @@ type Mutation {
   addParticipant(input: ParticipantInput!): MessageParticipant!
   removeParticipant(id: ID!): Boolean!
   registerPublicKey(public_key: String!): Boolean!
+  createPaymentTopUp(patientId: ID!, amountCents: Int!, appointmentId: ID): TopUpResult!
+  setBranchService(appointmentTypeId: ID!, priceCents: Int!, isOffered: Boolean!): BranchService!
+  setBranchPaymentMode(mode: String!): BranchPaymentSettings!
+  holdAppointmentFunds(appointmentId: ID!, patientId: ID!, amountCents: Int!): Boolean!
+  releaseAppointmentFunds(appointmentId: ID!): Boolean!
 }
 `, BuiltIn: false},
 }
@@ -5120,6 +5524,8 @@ func (ec *executionContext) childFields_Appointment(ctx context.Context, field g
 		return ec.fieldContext_Appointment_appointment_type_id(ctx, field)
 	case "discipline_id":
 		return ec.fieldContext_Appointment_discipline_id(ctx, field)
+	case "priceCents":
+		return ec.fieldContext_Appointment_priceCents(ctx, field)
 	case "scheduled_start":
 		return ec.fieldContext_Appointment_scheduled_start(ctx, field)
 	case "scheduled_end":
@@ -5286,6 +5692,30 @@ func (ec *executionContext) childFields_BranchHours(ctx context.Context, field g
 		return ec.fieldContext_BranchHours_updated_by(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type BranchHours", field.Name)
+}
+
+func (ec *executionContext) childFields_BranchPaymentSettings(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "branchId":
+		return ec.fieldContext_BranchPaymentSettings_branchId(ctx, field)
+	case "paymentMode":
+		return ec.fieldContext_BranchPaymentSettings_paymentMode(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type BranchPaymentSettings", field.Name)
+}
+
+func (ec *executionContext) childFields_BranchService(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_BranchService_id(ctx, field)
+	case "appointmentTypeId":
+		return ec.fieldContext_BranchService_appointmentTypeId(ctx, field)
+	case "priceCents":
+		return ec.fieldContext_BranchService_priceCents(ctx, field)
+	case "isOffered":
+		return ec.fieldContext_BranchService_isOffered(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type BranchService", field.Name)
 }
 
 func (ec *executionContext) childFields_Goal(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -5498,6 +5928,44 @@ func (ec *executionContext) childFields_PatientTags(ctx context.Context, field g
 		return ec.fieldContext_PatientTags_name(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type PatientTags", field.Name)
+}
+
+func (ec *executionContext) childFields_PaymentLedgerEntry(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_PaymentLedgerEntry_id(ctx, field)
+	case "type":
+		return ec.fieldContext_PaymentLedgerEntry_type(ctx, field)
+	case "amountCents":
+		return ec.fieldContext_PaymentLedgerEntry_amountCents(ctx, field)
+	case "balanceAfterCents":
+		return ec.fieldContext_PaymentLedgerEntry_balanceAfterCents(ctx, field)
+	case "appointmentId":
+		return ec.fieldContext_PaymentLedgerEntry_appointmentId(ctx, field)
+	case "note":
+		return ec.fieldContext_PaymentLedgerEntry_note(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_PaymentLedgerEntry_createdAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PaymentLedgerEntry", field.Name)
+}
+
+func (ec *executionContext) childFields_PaymentTopUp(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_PaymentTopUp_id(ctx, field)
+	case "amountCents":
+		return ec.fieldContext_PaymentTopUp_amountCents(ctx, field)
+	case "provider":
+		return ec.fieldContext_PaymentTopUp_provider(ctx, field)
+	case "status":
+		return ec.fieldContext_PaymentTopUp_status(ctx, field)
+	case "checkoutUrl":
+		return ec.fieldContext_PaymentTopUp_checkoutUrl(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_PaymentTopUp_createdAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PaymentTopUp", field.Name)
 }
 
 func (ec *executionContext) childFields_PractitionerAvailability(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -5760,6 +6228,20 @@ func (ec *executionContext) childFields_TherapyDiscipline(ctx context.Context, f
 	return nil, fmt.Errorf("no field named %q was found under type TherapyDiscipline", field.Name)
 }
 
+func (ec *executionContext) childFields_TopUpResult(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "topUpId":
+		return ec.fieldContext_TopUpResult_topUpId(ctx, field)
+	case "checkoutUrl":
+		return ec.fieldContext_TopUpResult_checkoutUrl(ctx, field)
+	case "amountCents":
+		return ec.fieldContext_TopUpResult_amountCents(ctx, field)
+	case "status":
+		return ec.fieldContext_TopUpResult_status(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TopUpResult", field.Name)
+}
+
 func (ec *executionContext) childFields_User(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -5834,6 +6316,22 @@ func (ec *executionContext) childFields_UserProfile(ctx context.Context, field g
 		return ec.fieldContext_UserProfile_notes(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type UserProfile", field.Name)
+}
+
+func (ec *executionContext) childFields_WalletSummary(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "walletId":
+		return ec.fieldContext_WalletSummary_walletId(ctx, field)
+	case "patientId":
+		return ec.fieldContext_WalletSummary_patientId(ctx, field)
+	case "balanceCents":
+		return ec.fieldContext_WalletSummary_balanceCents(ctx, field)
+	case "heldCents":
+		return ec.fieldContext_WalletSummary_heldCents(ctx, field)
+	case "spendableCents":
+		return ec.fieldContext_WalletSummary_spendableCents(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type WalletSummary", field.Name)
 }
 
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -6212,6 +6710,36 @@ func (ec *executionContext) field_Mutation_createPatient_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createPaymentTopUp_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "patientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["patientId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "amountCents",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["amountCents"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "appointmentId",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOID2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["appointmentId"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createPlatformUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6522,6 +7050,36 @@ func (ec *executionContext) field_Mutation_generateSlots_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_holdAppointmentFunds_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "appointmentId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["appointmentId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "patientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["patientId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "amountCents",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["amountCents"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_inactivatePatient_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6591,6 +7149,20 @@ func (ec *executionContext) field_Mutation_registerPublicKey_args(ctx context.Co
 		return nil, err
 	}
 	args["public_key"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_releaseAppointmentFunds_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "appointmentId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["appointmentId"] = arg0
 	return args, nil
 }
 
@@ -6821,6 +7393,50 @@ func (ec *executionContext) field_Mutation_setBranchActive_args(ctx context.Cont
 		return nil, err
 	}
 	args["isActive"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setBranchPaymentMode_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "mode",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["mode"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setBranchService_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "appointmentTypeId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["appointmentTypeId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "priceCents",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["priceCents"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "isOffered",
+		func(ctx context.Context, v any) (bool, error) {
+			return ec.unmarshalNBoolean2bool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["isOffered"] = arg2
 	return args, nil
 }
 
@@ -7599,6 +8215,56 @@ func (ec *executionContext) field_Query_patients_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["filter"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_paymentLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "patientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["patientId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_paymentWallet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "patientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["patientId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_pendingTopUps_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "patientId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["patientId"] = arg0
 	return args, nil
 }
 
@@ -8624,6 +9290,29 @@ func (ec *executionContext) _Appointment_discipline_id(ctx context.Context, fiel
 }
 func (ec *executionContext) fieldContext_Appointment_discipline_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Appointment", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Appointment_priceCents(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Appointment_priceCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PriceCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Appointment_priceCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Appointment", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Appointment_scheduled_start(ctx context.Context, field graphql.CollectedField, obj *db.BunAppointment) (ret graphql.Marshaler) {
@@ -10237,6 +10926,144 @@ func (ec *executionContext) _BranchHours_updated_by(ctx context.Context, field g
 }
 func (ec *executionContext) fieldContext_BranchHours_updated_by(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("BranchHours", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchPaymentSettings_branchId(ctx context.Context, field graphql.CollectedField, obj *model.BranchPaymentSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchPaymentSettings_branchId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BranchID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchPaymentSettings_branchId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchPaymentSettings", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchPaymentSettings_paymentMode(ctx context.Context, field graphql.CollectedField, obj *model.BranchPaymentSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchPaymentSettings_paymentMode(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PaymentMode, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchPaymentSettings_paymentMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchPaymentSettings", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _BranchService_id(ctx context.Context, field graphql.CollectedField, obj *model.BranchService) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchService_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchService_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchService", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchService_appointmentTypeId(ctx context.Context, field graphql.CollectedField, obj *model.BranchService) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchService_appointmentTypeId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AppointmentTypeID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchService_appointmentTypeId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchService", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchService_priceCents(ctx context.Context, field graphql.CollectedField, obj *model.BranchService) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchService_priceCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PriceCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchService_priceCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchService", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _BranchService_isOffered(ctx context.Context, field graphql.CollectedField, obj *model.BranchService) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchService_isOffered(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsOffered, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchService_isOffered(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchService", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Goal_id(ctx context.Context, field graphql.CollectedField, obj *db1.BunGoal) (ret graphql.Marshaler) {
@@ -14635,6 +15462,226 @@ func (ec *executionContext) fieldContext_Mutation_registerPublicKey(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createPaymentTopUp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createPaymentTopUp(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreatePaymentTopUp(ctx, fc.Args["patientId"].(string), fc.Args["amountCents"].(int), fc.Args["appointmentId"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TopUpResult) graphql.Marshaler {
+			return ec.marshalNTopUpResult2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐTopUpResult(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createPaymentTopUp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TopUpResult(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createPaymentTopUp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setBranchService(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setBranchService(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetBranchService(ctx, fc.Args["appointmentTypeId"].(string), fc.Args["priceCents"].(int), fc.Args["isOffered"].(bool))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.BranchService) graphql.Marshaler {
+			return ec.marshalNBranchService2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchService(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setBranchService(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchService(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setBranchService_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setBranchPaymentMode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_setBranchPaymentMode(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SetBranchPaymentMode(ctx, fc.Args["mode"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.BranchPaymentSettings) graphql.Marshaler {
+			return ec.marshalNBranchPaymentSettings2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchPaymentSettings(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_setBranchPaymentMode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchPaymentSettings(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setBranchPaymentMode_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_holdAppointmentFunds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_holdAppointmentFunds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().HoldAppointmentFunds(ctx, fc.Args["appointmentId"].(string), fc.Args["patientId"].(string), fc.Args["amountCents"].(int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_holdAppointmentFunds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_holdAppointmentFunds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_releaseAppointmentFunds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_releaseAppointmentFunds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReleaseAppointmentFunds(ctx, fc.Args["appointmentId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_releaseAppointmentFunds(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_releaseAppointmentFunds_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Patient_id(ctx context.Context, field graphql.CollectedField, obj *db1.BunPatients) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -15313,6 +16360,305 @@ func (ec *executionContext) _PatientTags_name(ctx context.Context, field graphql
 }
 func (ec *executionContext) fieldContext_PatientTags_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("PatientTags", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_id(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_type(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_type(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_amountCents(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_amountCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AmountCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_amountCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_balanceAfterCents(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_balanceAfterCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BalanceAfterCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_balanceAfterCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_appointmentId(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_appointmentId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AppointmentID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOID2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_appointmentId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_note(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_note(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Note, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_note(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentLedgerEntry_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.PaymentLedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentLedgerEntry_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNDateTime2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentLedgerEntry_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentLedgerEntry", field, false, false, errors.New("field of type DateTime does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_id(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_amountCents(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_amountCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AmountCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_amountCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_provider(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_provider(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Provider, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_provider(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_status(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_checkoutUrl(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_checkoutUrl(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CheckoutURL, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_checkoutUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PaymentTopUp_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.PaymentTopUp) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PaymentTopUp_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNDateTime2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PaymentTopUp_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PaymentTopUp", field, false, false, errors.New("field of type DateTime does not have child fields"))
 }
 
 func (ec *executionContext) _PractitionerAvailability_id(ctx context.Context, field graphql.CollectedField, obj *db.BunPractitionerAvailability) (ret graphql.Marshaler) {
@@ -18120,6 +19466,193 @@ func (ec *executionContext) fieldContext_Query_appRoles(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_paymentWallet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_paymentWallet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().PaymentWallet(ctx, fc.Args["patientId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.WalletSummary) graphql.Marshaler {
+			return ec.marshalNWalletSummary2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐWalletSummary(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_paymentWallet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_WalletSummary(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_paymentWallet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_paymentLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_paymentLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().PaymentLedger(ctx, fc.Args["patientId"].(string), fc.Args["limit"].(*int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.PaymentLedgerEntry) graphql.Marshaler {
+			return ec.marshalNPaymentLedgerEntry2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentLedgerEntryᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_paymentLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PaymentLedgerEntry(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_paymentLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_pendingTopUps(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_pendingTopUps(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().PendingTopUps(ctx, fc.Args["patientId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.PaymentTopUp) graphql.Marshaler {
+			return ec.marshalNPaymentTopUp2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentTopUpᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_pendingTopUps(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PaymentTopUp(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_pendingTopUps_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_branchServices(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_branchServices(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().BranchServices(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.BranchService) graphql.Marshaler {
+			return ec.marshalNBranchService2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchServiceᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_branchServices(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchService(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_branchPaymentMode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_branchPaymentMode(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().BranchPaymentMode(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_branchPaymentMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Query", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20016,6 +21549,98 @@ func (ec *executionContext) fieldContext_TherapyDiscipline_isActive(_ context.Co
 	return graphql.NewScalarFieldContext("TherapyDiscipline", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
+func (ec *executionContext) _TopUpResult_topUpId(ctx context.Context, field graphql.CollectedField, obj *model.TopUpResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TopUpResult_topUpId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TopUpID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TopUpResult_topUpId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TopUpResult", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _TopUpResult_checkoutUrl(ctx context.Context, field graphql.CollectedField, obj *model.TopUpResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TopUpResult_checkoutUrl(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CheckoutURL, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TopUpResult_checkoutUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TopUpResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TopUpResult_amountCents(ctx context.Context, field graphql.CollectedField, obj *model.TopUpResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TopUpResult_amountCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AmountCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TopUpResult_amountCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TopUpResult", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TopUpResult_status(ctx context.Context, field graphql.CollectedField, obj *model.TopUpResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TopUpResult_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TopUpResult_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TopUpResult", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20786,6 +22411,121 @@ func (ec *executionContext) _UserProfile_notes(ctx context.Context, field graphq
 }
 func (ec *executionContext) fieldContext_UserProfile_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("UserProfile", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _WalletSummary_walletId(ctx context.Context, field graphql.CollectedField, obj *model.WalletSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WalletSummary_walletId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.WalletID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WalletSummary_walletId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WalletSummary", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _WalletSummary_patientId(ctx context.Context, field graphql.CollectedField, obj *model.WalletSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WalletSummary_patientId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PatientID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WalletSummary_patientId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WalletSummary", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _WalletSummary_balanceCents(ctx context.Context, field graphql.CollectedField, obj *model.WalletSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WalletSummary_balanceCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BalanceCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WalletSummary_balanceCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WalletSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _WalletSummary_heldCents(ctx context.Context, field graphql.CollectedField, obj *model.WalletSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WalletSummary_heldCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HeldCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WalletSummary_heldCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WalletSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _WalletSummary_spendableCents(ctx context.Context, field graphql.CollectedField, obj *model.WalletSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_WalletSummary_spendableCents(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SpendableCents, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_WalletSummary_spendableCents(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("WalletSummary", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -24280,6 +26020,11 @@ func (ec *executionContext) _Appointment(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "priceCents":
+			out.Values[i] = ec._Appointment_priceCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "scheduled_start":
 			field := field
 
@@ -25725,6 +27470,102 @@ func (ec *executionContext) _BranchHours(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var branchPaymentSettingsImplementors = []string{"BranchPaymentSettings"}
+
+func (ec *executionContext) _BranchPaymentSettings(ctx context.Context, sel ast.SelectionSet, obj *model.BranchPaymentSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, branchPaymentSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BranchPaymentSettings")
+		case "branchId":
+			out.Values[i] = ec._BranchPaymentSettings_branchId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "paymentMode":
+			out.Values[i] = ec._BranchPaymentSettings_paymentMode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var branchServiceImplementors = []string{"BranchService"}
+
+func (ec *executionContext) _BranchService(ctx context.Context, sel ast.SelectionSet, obj *model.BranchService) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, branchServiceImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BranchService")
+		case "id":
+			out.Values[i] = ec._BranchService_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "appointmentTypeId":
+			out.Values[i] = ec._BranchService_appointmentTypeId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "priceCents":
+			out.Values[i] = ec._BranchService_priceCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isOffered":
+			out.Values[i] = ec._BranchService_isOffered(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var goalImplementors = []string{"Goal"}
 
 func (ec *executionContext) _Goal(ctx context.Context, sel ast.SelectionSet, obj *db1.BunGoal) graphql.Marshaler {
@@ -27031,6 +28872,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createPaymentTopUp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createPaymentTopUp(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setBranchService":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setBranchService(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setBranchPaymentMode":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setBranchPaymentMode(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "holdAppointmentFunds":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_holdAppointmentFunds(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "releaseAppointmentFunds":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_releaseAppointmentFunds(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -27465,6 +29341,137 @@ func (ec *executionContext) _PatientTags(ctx context.Context, sel ast.SelectionS
 			}
 		case "name":
 			out.Values[i] = ec._PatientTags_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var paymentLedgerEntryImplementors = []string{"PaymentLedgerEntry"}
+
+func (ec *executionContext) _PaymentLedgerEntry(ctx context.Context, sel ast.SelectionSet, obj *model.PaymentLedgerEntry) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paymentLedgerEntryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PaymentLedgerEntry")
+		case "id":
+			out.Values[i] = ec._PaymentLedgerEntry_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._PaymentLedgerEntry_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amountCents":
+			out.Values[i] = ec._PaymentLedgerEntry_amountCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balanceAfterCents":
+			out.Values[i] = ec._PaymentLedgerEntry_balanceAfterCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "appointmentId":
+			out.Values[i] = ec._PaymentLedgerEntry_appointmentId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "note":
+			out.Values[i] = ec._PaymentLedgerEntry_note(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._PaymentLedgerEntry_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var paymentTopUpImplementors = []string{"PaymentTopUp"}
+
+func (ec *executionContext) _PaymentTopUp(ctx context.Context, sel ast.SelectionSet, obj *model.PaymentTopUp) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paymentTopUpImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PaymentTopUp")
+		case "id":
+			out.Values[i] = ec._PaymentTopUp_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amountCents":
+			out.Values[i] = ec._PaymentTopUp_amountCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "provider":
+			out.Values[i] = ec._PaymentTopUp_provider(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._PaymentTopUp_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "checkoutUrl":
+			out.Values[i] = ec._PaymentTopUp_checkoutUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._PaymentTopUp_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -29126,6 +31133,116 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "paymentWallet":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_paymentWallet(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "paymentLedger":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_paymentLedger(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "pendingTopUps":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pendingTopUps(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "branchServices":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_branchServices(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "branchPaymentMode":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_branchPaymentMode(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -30432,6 +32549,59 @@ func (ec *executionContext) _TherapyDiscipline(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var topUpResultImplementors = []string{"TopUpResult"}
+
+func (ec *executionContext) _TopUpResult(ctx context.Context, sel ast.SelectionSet, obj *model.TopUpResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, topUpResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TopUpResult")
+		case "topUpId":
+			out.Values[i] = ec._TopUpResult_topUpId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "checkoutUrl":
+			out.Values[i] = ec._TopUpResult_checkoutUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amountCents":
+			out.Values[i] = ec._TopUpResult_amountCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._TopUpResult_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var userImplementors = []string{"User"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
@@ -30635,6 +32805,64 @@ func (ec *executionContext) _UserProfile(ctx context.Context, sel ast.SelectionS
 		case "notes":
 			out.Values[i] = ec._UserProfile_notes(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var walletSummaryImplementors = []string{"WalletSummary"}
+
+func (ec *executionContext) _WalletSummary(ctx context.Context, sel ast.SelectionSet, obj *model.WalletSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, walletSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WalletSummary")
+		case "walletId":
+			out.Values[i] = ec._WalletSummary_walletId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "patientId":
+			out.Values[i] = ec._WalletSummary_patientId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "balanceCents":
+			out.Values[i] = ec._WalletSummary_balanceCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "heldCents":
+			out.Values[i] = ec._WalletSummary_heldCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "spendableCents":
+			out.Values[i] = ec._WalletSummary_spendableCents(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:
@@ -31341,6 +33569,50 @@ func (ec *executionContext) unmarshalNBranchInput2githubᚗcomᚋclinicmanager�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNBranchPaymentSettings2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchPaymentSettings(ctx context.Context, sel ast.SelectionSet, v model.BranchPaymentSettings) graphql.Marshaler {
+	return ec._BranchPaymentSettings(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBranchPaymentSettings2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchPaymentSettings(ctx context.Context, sel ast.SelectionSet, v *model.BranchPaymentSettings) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BranchPaymentSettings(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBranchService2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchService(ctx context.Context, sel ast.SelectionSet, v model.BranchService) graphql.Marshaler {
+	return ec._BranchService(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBranchService2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchServiceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BranchService) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNBranchService2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchService(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBranchService2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchService(ctx context.Context, sel ast.SelectionSet, v *model.BranchService) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BranchService(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNCancelAppointmentInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐCancelAppointmentInput(ctx context.Context, v any) (model.CancelAppointmentInput, error) {
 	res, err := ec.unmarshalInputCancelAppointmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -31804,6 +34076,58 @@ func (ec *executionContext) unmarshalNPatientUpdateInput2githubᚗcomᚋclinicma
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNPaymentLedgerEntry2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentLedgerEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PaymentLedgerEntry) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPaymentLedgerEntry2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentLedgerEntry(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPaymentLedgerEntry2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentLedgerEntry(ctx context.Context, sel ast.SelectionSet, v *model.PaymentLedgerEntry) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PaymentLedgerEntry(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPaymentTopUp2ᚕᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentTopUpᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PaymentTopUp) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPaymentTopUp2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentTopUp(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPaymentTopUp2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐPaymentTopUp(ctx context.Context, sel ast.SelectionSet, v *model.PaymentTopUp) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PaymentTopUp(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPractitionerAvailability2githubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunPractitionerAvailability(ctx context.Context, sel ast.SelectionSet, v db.BunPractitionerAvailability) graphql.Marshaler {
 	return ec._PractitionerAvailability(ctx, sel, &v)
 }
@@ -32224,6 +34548,20 @@ func (ec *executionContext) unmarshalNThreadUpdateInput2githubᚗcomᚋclinicman
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNTopUpResult2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐTopUpResult(ctx context.Context, sel ast.SelectionSet, v model.TopUpResult) graphql.Marshaler {
+	return ec._TopUpResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTopUpResult2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐTopUpResult(ctx context.Context, sel ast.SelectionSet, v *model.TopUpResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TopUpResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNUpdateAssignmentInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐUpdateAssignmentInput(ctx context.Context, v any) (model.UpdateAssignmentInput, error) {
 	res, err := ec.unmarshalInputUpdateAssignmentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -32281,6 +34619,20 @@ func (ec *executionContext) marshalNUserProfile2ᚖgithubᚗcomᚋclinicmanager�
 func (ec *executionContext) unmarshalNUserProfileInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐUserProfileInput(ctx context.Context, v any) (model.UserProfileInput, error) {
 	res, err := ec.unmarshalInputUserProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWalletSummary2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐWalletSummary(ctx context.Context, sel ast.SelectionSet, v model.WalletSummary) graphql.Marshaler {
+	return ec._WalletSummary(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWalletSummary2ᚖgithubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐWalletSummary(ctx context.Context, sel ast.SelectionSet, v *model.WalletSummary) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WalletSummary(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

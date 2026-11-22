@@ -459,6 +459,52 @@ type TherapyDiscipline {
   isActive: Boolean!
 }
 
+type WalletSummary {
+  walletId: ID!
+  patientId: ID!
+  balanceCents: Int!
+  heldCents: Int!
+  spendableCents: Int!
+}
+
+type PaymentLedgerEntry {
+  id: ID!
+  type: String!
+  amountCents: Int!
+  balanceAfterCents: Int!
+  appointmentId: ID
+  note: String!
+  createdAt: DateTime!
+}
+
+type PaymentTopUp {
+  id: ID!
+  amountCents: Int!
+  provider: String!
+  status: String!
+  checkoutUrl: String!
+  createdAt: DateTime!
+}
+
+type TopUpResult {
+  topUpId: ID!
+  checkoutUrl: String!
+  amountCents: Int!
+  status: String!
+}
+
+type BranchService {
+  id: ID!
+  appointmentTypeId: ID!
+  priceCents: Int!
+  isOffered: Boolean!
+}
+
+type BranchPaymentSettings {
+  branchId: ID!
+  paymentMode: String!
+}
+
 type Appointment {
   id: ID!
   branch_id: ID!
@@ -466,6 +512,7 @@ type Appointment {
   practitioner_id: ID!
   appointment_type_id: ID
   discipline_id: ID
+  priceCents: Int!
   scheduled_start: DateTime!
   scheduled_end: DateTime!
   status: String!
@@ -767,6 +814,11 @@ type Query {
   branchesByTenant(tenantId: ID!): [Branch!]!
   platformUsers(search: String, appRole: String, tenantId: ID, branchId: ID): [User!]!
   appRoles: [AppRole!]!
+  paymentWallet(patientId: ID!): WalletSummary!
+  paymentLedger(patientId: ID!, limit: Int = 50): [PaymentLedgerEntry!]!
+  pendingTopUps(patientId: ID!): [PaymentTopUp!]!
+  branchServices: [BranchService!]!
+  branchPaymentMode: String!
 }
 
 type Mutation {
@@ -844,4 +896,9 @@ type Mutation {
   addParticipant(input: ParticipantInput!): MessageParticipant!
   removeParticipant(id: ID!): Boolean!
   registerPublicKey(public_key: String!): Boolean!
+  createPaymentTopUp(patientId: ID!, amountCents: Int!, appointmentId: ID): TopUpResult!
+  setBranchService(appointmentTypeId: ID!, priceCents: Int!, isOffered: Boolean!): BranchService!
+  setBranchPaymentMode(mode: String!): BranchPaymentSettings!
+  holdAppointmentFunds(appointmentId: ID!, patientId: ID!, amountCents: Int!): Boolean!
+  releaseAppointmentFunds(appointmentId: ID!): Boolean!
 }

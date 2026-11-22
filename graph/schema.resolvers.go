@@ -18,6 +18,7 @@ import (
 	messagingmodel "github.com/clinicmanager/services/messaging/graph/model"
 	db1 "github.com/clinicmanager/services/patient/db"
 	patientmodel "github.com/clinicmanager/services/patient/graph/model"
+	paymentservice "github.com/clinicmanager/services/payment/service"
 	db2 "github.com/clinicmanager/services/tenant/db"
 	usermodel "github.com/clinicmanager/services/user/graph/model"
 	sharedctx "github.com/clinicmanager/shared/context"
@@ -811,6 +812,69 @@ func (r *mutationResolver) RegisterPublicKey(ctx context.Context, publicKey stri
 	return r.MessagingService.RegisterPublicKey(ctx, publicKey)
 }
 
+// CreatePaymentTopUp is the resolver for the createPaymentTopUp field.
+func (r *mutationResolver) CreatePaymentTopUp(ctx context.Context, patientID string, amountCents int, appointmentID *string) (*model.TopUpResult, error) {
+	tc := sharedctx.FromContext(ctx)
+	topUp, checkoutURL, err := r.PaymentService.CreateTopUp(ctx, paymentservice.TopUpInput{
+		TenantID:      tc.TenantID,
+		BranchID:      tc.BranchID,
+		PatientID:     patientID,
+		AmountCents:   amountCents,
+		AppointmentID: appointmentID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.TopUpResult{
+		TopUpID:     topUp.ID,
+		CheckoutURL: checkoutURL,
+		AmountCents: topUp.AmountCents,
+		Status:      topUp.Status,
+	}, nil
+}
+
+// SetBranchService is the resolver for the setBranchService field.
+func (r *mutationResolver) SetBranchService(ctx context.Context, appointmentTypeID string, priceCents int, isOffered bool) (*model.BranchService, error) {
+	tc := sharedctx.FromContext(ctx)
+	svc, err := r.PaymentService.SetBranchService(ctx, tc.TenantID, tc.BranchID, appointmentTypeID, priceCents, isOffered)
+	if err != nil {
+		return nil, err
+	}
+	return &model.BranchService{
+		ID:                svc.ID,
+		AppointmentTypeID: svc.AppointmentTypeID,
+		PriceCents:        svc.PriceCents,
+		IsOffered:         svc.IsOffered,
+	}, nil
+}
+
+// SetBranchPaymentMode is the resolver for the setBranchPaymentMode field.
+func (r *mutationResolver) SetBranchPaymentMode(ctx context.Context, mode string) (*model.BranchPaymentSettings, error) {
+	tc := sharedctx.FromContext(ctx)
+	settings, err := r.PaymentService.SetBranchPaymentMode(ctx, tc.TenantID, tc.BranchID, mode)
+	if err != nil {
+		return nil, err
+	}
+	return &model.BranchPaymentSettings{BranchID: settings.BranchID, PaymentMode: settings.PaymentMode}, nil
+}
+
+// HoldAppointmentFunds is the resolver for the holdAppointmentFunds field.
+func (r *mutationResolver) HoldAppointmentFunds(ctx context.Context, appointmentID string, patientID string, amountCents int) (bool, error) {
+	tc := sharedctx.FromContext(ctx)
+	if err := r.PaymentService.HoldFunds(ctx, tc.TenantID, tc.BranchID, patientID, appointmentID, amountCents); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ReleaseAppointmentFunds is the resolver for the releaseAppointmentFunds field.
+func (r *mutationResolver) ReleaseAppointmentFunds(ctx context.Context, appointmentID string) (bool, error) {
+	if err := r.PaymentService.ReleaseHold(ctx, appointmentID); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // DateOfBirth is the resolver for the dateOfBirth field.
 func (r *patientResolver) DateOfBirth(ctx context.Context, obj *db1.BunPatients) (string, error) {
 	if obj.DateOfBirth.IsZero() {
@@ -1308,6 +1372,98 @@ func (r *queryResolver) AppRoles(ctx context.Context) ([]*model.AppRole, error) 
 		return nil, err
 	}
 	return fromSvc[[]*model.AppRole](svcRoles)
+}
+
+// PaymentWallet is the resolver for the paymentWallet field.
+func (r *queryResolver) PaymentWallet(ctx context.Context, patientID string) (*model.WalletSummary, error) {
+	tc := sharedctx.FromContext(ctx)
+	wallet, err := r.PaymentService.EnsureWallet(ctx, tc.TenantID, tc.BranchID, patientID)
+	if err != nil {
+		return nil, err
+	}
+	balance, held, spendable, err := r.PaymentService.WalletBalance(ctx, tc.TenantID, tc.BranchID, patientID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.WalletSummary{
+		WalletID:       wallet.ID,
+		PatientID:      patientID,
+		BalanceCents:   int(balance),
+		HeldCents:      int(held),
+		SpendableCents: int(spendable),
+	}, nil
+}
+
+// PaymentLedger is the resolver for the paymentLedger field.
+func (r *queryResolver) PaymentLedger(ctx context.Context, patientID string, limit *int) ([]*model.PaymentLedgerEntry, error) {
+	tc := sharedctx.FromContext(ctx)
+	lim := 50
+	if limit != nil && *limit > 0 {
+		lim = *limit
+	}
+	entries, err := r.PaymentService.ListLedger(ctx, tc.TenantID, tc.BranchID, patientID, lim)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*model.PaymentLedgerEntry, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, &model.PaymentLedgerEntry{
+			ID:                e.ID,
+			Type:              e.Type,
+			AmountCents:       e.AmountCents,
+			BalanceAfterCents: e.BalanceAfter,
+			AppointmentID:     e.AppointmentID,
+			Note:              e.Note,
+			CreatedAt:         e.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	return out, nil
+}
+
+// PendingTopUps is the resolver for the pendingTopUps field.
+func (r *queryResolver) PendingTopUps(ctx context.Context, patientID string) ([]*model.PaymentTopUp, error) {
+	tc := sharedctx.FromContext(ctx)
+	topUps, err := r.PaymentService.ListPendingTopUps(ctx, tc.TenantID, tc.BranchID, patientID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*model.PaymentTopUp, 0, len(topUps))
+	for _, t := range topUps {
+		out = append(out, &model.PaymentTopUp{
+			ID:          t.ID,
+			AmountCents: t.AmountCents,
+			Provider:    t.Provider,
+			Status:      t.Status,
+			CheckoutURL: t.CheckoutURL,
+			CreatedAt:   t.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	return out, nil
+}
+
+// BranchServices is the resolver for the branchServices field.
+func (r *queryResolver) BranchServices(ctx context.Context) ([]*model.BranchService, error) {
+	tc := sharedctx.FromContext(ctx)
+	services, err := r.PaymentService.ListBranchServices(ctx, tc.BranchID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*model.BranchService, 0, len(services))
+	for _, s := range services {
+		out = append(out, &model.BranchService{
+			ID:                s.ID,
+			AppointmentTypeID: s.AppointmentTypeID,
+			PriceCents:        s.PriceCents,
+			IsOffered:         s.IsOffered,
+		})
+	}
+	return out, nil
+}
+
+// BranchPaymentMode is the resolver for the branchPaymentMode field.
+func (r *queryResolver) BranchPaymentMode(ctx context.Context) (string, error) {
+	tc := sharedctx.FromContext(ctx)
+	return r.PaymentService.GetBranchPaymentMode(ctx, tc.BranchID)
 }
 
 // BranchID is the resolver for the branch_id field.

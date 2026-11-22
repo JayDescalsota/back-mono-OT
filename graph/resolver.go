@@ -4,6 +4,7 @@ import (
 	bookingservice "github.com/clinicmanager/services/booking/service"
 	messagingservice "github.com/clinicmanager/services/messaging/service"
 	patientservice "github.com/clinicmanager/services/patient/service"
+	paymentservice "github.com/clinicmanager/services/payment/service"
 	tenantservice "github.com/clinicmanager/services/tenant/service"
 	userservice "github.com/clinicmanager/services/user/service"
 )
@@ -16,6 +17,7 @@ type Resolver struct {
 	PatientService   *patientservice.PatientService
 	BookingService   *bookingservice.BookingService
 	MessagingService *messagingservice.MessagingService
+	PaymentService   *paymentservice.PaymentService
 }
 
 func NewResolver(
@@ -25,6 +27,7 @@ func NewResolver(
 	patient *patientservice.PatientService,
 	booking *bookingservice.BookingService,
 	messaging *messagingservice.MessagingService,
+	payment *paymentservice.PaymentService,
 ) *Resolver {
 	return &Resolver{
 		AuthService:      auth,
@@ -33,5 +36,6 @@ func NewResolver(
 		PatientService:   patient,
 		BookingService:   booking,
 		MessagingService: messaging,
+		PaymentService:   payment,
 	}
 }

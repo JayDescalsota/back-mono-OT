@@ -92,6 +92,18 @@ type BranchInput struct {
 	IsActive bool    `json:"isActive"`
 }
 
+type BranchPaymentSettings struct {
+	BranchID    string `json:"branchId"`
+	PaymentMode string `json:"paymentMode"`
+}
+
+type BranchService struct {
+	ID                string `json:"id"`
+	AppointmentTypeID string `json:"appointmentTypeId"`
+	PriceCents        int    `json:"priceCents"`
+	IsOffered         bool   `json:"isOffered"`
+}
+
 type CancelAppointmentInput struct {
 	Reason string `json:"reason"`
 }
@@ -236,6 +248,25 @@ type PatientsFilter struct {
 	Pagination []*PatientPagination `json:"pagination,omitempty"`
 }
 
+type PaymentLedgerEntry struct {
+	ID                string  `json:"id"`
+	Type              string  `json:"type"`
+	AmountCents       int     `json:"amountCents"`
+	BalanceAfterCents int     `json:"balanceAfterCents"`
+	AppointmentID     *string `json:"appointmentId,omitempty"`
+	Note              string  `json:"note"`
+	CreatedAt         string  `json:"createdAt"`
+}
+
+type PaymentTopUp struct {
+	ID          string `json:"id"`
+	AmountCents int    `json:"amountCents"`
+	Provider    string `json:"provider"`
+	Status      string `json:"status"`
+	CheckoutURL string `json:"checkoutUrl"`
+	CreatedAt   string `json:"createdAt"`
+}
+
 type PractitionerAvailabilityInput struct {
 	PractitionerID string `json:"practitioner_id"`
 	StartTime      string `json:"start_time"`
@@ -353,6 +384,13 @@ type ThreadUpdateInput struct {
 	IsActive *bool   `json:"is_active,omitempty"`
 }
 
+type TopUpResult struct {
+	TopUpID     string `json:"topUpId"`
+	CheckoutURL string `json:"checkoutUrl"`
+	AmountCents int    `json:"amountCents"`
+	Status      string `json:"status"`
+}
+
 type UpdateAssignmentInput struct {
 	RoleID string `json:"roleId"`
 }
@@ -417,4 +455,12 @@ type UserProfileInput struct {
 	EmergencyContactPhone    *string `json:"emergencyContactPhone,omitempty"`
 	EmergencyContactRelation *string `json:"emergencyContactRelation,omitempty"`
 	Notes                    *string `json:"notes,omitempty"`
+}
+
+type WalletSummary struct {
+	WalletID       string `json:"walletId"`
+	PatientID      string `json:"patientId"`
+	BalanceCents   int    `json:"balanceCents"`
+	HeldCents      int    `json:"heldCents"`
+	SpendableCents int    `json:"spendableCents"`
 }

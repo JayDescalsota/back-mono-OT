@@ -26,6 +26,20 @@ var rruleToDay = map[string]int{
 type BookingService struct {
 	BookingRepository *repository.BookingRepository
 	Cache             *redis.Client
+	// Payments is set in wiring (monolith) to enforce prepaid credits.
+	// Nil disables money checks (e.g. in unit tests).
+	Payments FundsLedger
+}
+
+// FundsLedger is the subset of the payment service that scheduling needs.
+// Declared here (like userservice.Mailer) so booking doesn't import payment.
+type FundsLedger interface {
+	GetBranchPrice(ctx context.Context, branchID, appointmentTypeID string) (int, bool, error)
+	GetBranchPaymentMode(ctx context.Context, branchID string) (string, error)
+	HoldFunds(ctx context.Context, tenantID, branchID, patientID, appointmentID string, amountCents int) error
+	CaptureHold(ctx context.Context, tenantID, branchID, patientID, appointmentID string, amountCents int) error
+	ConsumeForAppointment(ctx context.Context, tenantID, branchID, patientID, appointmentID string, amountCents int) error
+	ReleaseHold(ctx context.Context, appointmentID string) error
 }
 
 func NewBookingService(bookingRepository *repository.BookingRepository, cacheClient *redis.Client) *BookingService {
@@ -642,6 +656,15 @@ func (s *BookingService) CreateAppointment(ctx context.Context, input model.Appo
 		disciplineID = &d.ID
 	}
 
+	priceCents := 0
+	if appointmentTypeID != nil && s.Payments != nil {
+		// Snapshot the branch's price now; later catalog changes must not
+		// rewrite what this booking owes.
+		if price, offered, err := s.Payments.GetBranchPrice(ctx, tctx.BranchID, *appointmentTypeID); err == nil && offered {
+			priceCents = price
+		}
+	}
+
 	m := &db.BunAppointment{
 		ID:                uuid.NewString(),
 		TenantID:          tctx.TenantID,
@@ -651,6 +674,7 @@ func (s *BookingService) CreateAppointment(ctx context.Context, input model.Appo
 		PractitionerID:    practitionerID,
 		AppointmentTypeID: appointmentTypeID,
 		DisciplineID:      disciplineID,
+		PriceCents:        priceCents,
 		StartAt:           startAt,
 		EndAt:             endAt,
 		Status:            "PENDING",
@@ -731,6 +755,13 @@ func (s *BookingService) StartAppointment(ctx context.Context, id string, goalID
 	if now.Before(start) {
 		return nil, fmt.Errorf("appointment cannot be started before scheduled time %s", start.Format(time.RFC3339))
 	}
+	if s.Payments != nil && existing.PriceCents > 0 && existing.PatientID != nil {
+		if mode, err := s.Payments.GetBranchPaymentMode(ctx, existing.BranchID); err == nil && mode == "upfront" {
+			if err := s.Payments.HoldFunds(ctx, existing.TenantID, existing.BranchID, *existing.PatientID, existing.ID, existing.PriceCents); err != nil {
+				return nil, fmt.Errorf("cannot start session: %w", err)
+			}
+		}
+	}
 	existing.Status = "IN_PROGRESS"
 	existing.UpdatedAt = time.Now()
 	existing.UpdatedAction = "START"
@@ -756,6 +787,20 @@ func (s *BookingService) CompleteAppointment(ctx context.Context, id string) (*d
 	}
 	if existing.Status != "IN_PROGRESS" {
 		return nil, fmt.Errorf("cannot complete appointment in status %s", existing.Status)
+	}
+	if s.Payments != nil && existing.PriceCents > 0 && existing.PatientID != nil {
+		mode, err := s.Payments.GetBranchPaymentMode(ctx, existing.BranchID)
+		if err != nil {
+			return nil, err
+		}
+		if mode == "upfront" {
+			err = s.Payments.CaptureHold(ctx, existing.TenantID, existing.BranchID, *existing.PatientID, existing.ID, existing.PriceCents)
+		} else {
+			err = s.Payments.ConsumeForAppointment(ctx, existing.TenantID, existing.BranchID, *existing.PatientID, existing.ID, existing.PriceCents)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("cannot complete session: %w", err)
+		}
 	}
 	existing.Status = "DONE"
 	existing.UpdatedAt = time.Now()
@@ -786,6 +831,9 @@ func (s *BookingService) CancelAppointment(ctx context.Context, id string, reaso
 	existing.UpdatedAction = "CANCEL"
 	if err := s.BookingRepository.UpdateAppointment(ctx, existing); err != nil {
 		return nil, err
+	}
+	if s.Payments != nil {
+		_ = s.Payments.ReleaseHold(ctx, id)
 	}
 	s.cacheDel(ctx, cache.Key("booking", "appointment", id))
 	return existing, nil

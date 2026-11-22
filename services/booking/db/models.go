@@ -180,6 +180,7 @@ type BunAppointment struct {
 	PractitionerID     *string    `bun:"practitioner_id" json:"practitioner_id"`
 	AppointmentTypeID  *string    `bun:"appointment_type_id" json:"appointment_type_id"`
 	DisciplineID       *string    `bun:"discipline_id" json:"discipline_id"`
+	PriceCents         int        `bun:"price_centavos,notnull,default:0" json:"price_centavos"`
 	StartAt            time.Time  `bun:"start_at" json:"start_at"`
 	EndAt              time.Time  `bun:"end_at" json:"end_at"`
 	Status             string     `bun:"status" json:"status"` // PENDING / CONFIRMED / IN_PROGRESS / DONE / CANCELLED / RESCHEDULED
