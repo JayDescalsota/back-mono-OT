@@ -47,6 +47,7 @@ func newHTTPServer(cfg Config, services Services, redisClient *redis.Client) *ht
 		services.Patients,
 		services.Bookings,
 		services.Messaging,
+		services.Payments,
 	)
 	graphqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 	mux.Handle("/graphql", sharedCtx.Tenant(graphqlServer))
@@ -64,6 +65,11 @@ func newHTTPServer(cfg Config, services Services, redisClient *redis.Client) *ht
 	mux.Handle("POST /refresh-token", sharedCtx.Tenant(refreshTokenHandler(services.Auth)))
 	mux.Handle("POST /forgot-password", sharedCtx.Tenant(forgotPasswordHandler(services.Auth)))
 	mux.Handle("POST /reset-password", sharedCtx.Tenant(resetPasswordHandler(services.Auth)))
+
+	// PayMongo webhooks. PayMongo cannot log in, so this route is public but
+	// every delivery is signature-verified inside the payment service before
+	// anything is applied.
+	mux.HandleFunc("POST /webhooks/paymongo", paymongoWebhookHandler(services.Payments))
 
 	// Realtime chat stream. Browsers hold this connection open and receive
 	// one event per new message. ?userId=… decides whose messages to send.

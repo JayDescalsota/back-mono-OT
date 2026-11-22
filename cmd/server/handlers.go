@@ -11,11 +11,14 @@ package main
 // that is the service layer's job (see CODING_STANDARDS.md).
 
 import (
+	"io"
 	"net/http"
 
+	paymentservice "github.com/clinicmanager/services/payment/service"
 	"github.com/clinicmanager/services/user/service"
 	"github.com/clinicmanager/shared/context"
 	"github.com/clinicmanager/shared/httpx"
+	"github.com/clinicmanager/shared/logger"
 	"github.com/clinicmanager/shared/response"
 )
 
@@ -208,5 +211,27 @@ func refreshTokenHandler(svc *service.AuthService) http.HandlerFunc {
 			return
 		}
 		httpx.OK(w, res)
+	}
+}
+
+// paymongoWebhookHandler receives PayMongo event deliveries. It must read
+// the RAW body (the signature is computed over those exact bytes) and passes
+// it to the payment service, which verifies the signature and applies the
+// event idempotently. Unknown event types are acknowledged, not retried.
+func paymongoWebhookHandler(payments *paymentservice.PaymentService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := payments.HandleWebhook(r.Context(), raw, r.Header.Get("Paymongo-Signature")); err != nil {
+			logger.Error(r.Context(), "paymongo webhook rejected", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"received":true}`))
 	}
 }

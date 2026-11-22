@@ -13,6 +13,8 @@ import (
 	messagingservice "github.com/clinicmanager/services/messaging/service"
 	patientrepo "github.com/clinicmanager/services/patient/repository"
 	patientservice "github.com/clinicmanager/services/patient/service"
+	paymentrepo "github.com/clinicmanager/services/payment/repository"
+	paymentservice "github.com/clinicmanager/services/payment/service"
 	tenantrepo "github.com/clinicmanager/services/tenant/repository"
 	tenantservice "github.com/clinicmanager/services/tenant/service"
 	userrepo "github.com/clinicmanager/services/user/repository"
@@ -37,6 +39,7 @@ type Repositories struct {
 	Patients  *patientrepo.PatientRepository
 	Bookings  *bookingrepo.BookingRepository
 	Messaging *messagingrepo.MessagingRepository
+	Payments  paymentrepo.PaymentRepository
 }
 
 // newRepositories builds one repository per domain on the shared DB pool.
@@ -50,6 +53,7 @@ func newRepositories(db *bun.DB) Repositories {
 		Patients:  patientrepo.NewPatientRepository(dbSet),
 		Bookings:  bookingrepo.NewBookingRepository(dbSet),
 		Messaging: messagingrepo.NewMessagingRepository(dbSet),
+		Payments:  paymentrepo.NewPaymentRepository(dbSet),
 	}
 }
 
@@ -62,6 +66,7 @@ type Services struct {
 	Patients  *patientservice.PatientService
 	Bookings  *bookingservice.BookingService
 	Messaging *messagingservice.MessagingService
+	Payments  *paymentservice.PaymentService
 }
 
 // newServices builds the business-logic layer on top of the repositories.
@@ -69,13 +74,27 @@ type Services struct {
 func newServices(cfg Config, repos Repositories, redisClient *redis.Client) Services {
 	auth := userservice.NewAuthService(repos.Users, cfg.JWTSecret, SMTPMailer{}, cfg.BaseURL, accessTokenTTL, refreshTokenTTL)
 	auth.FrontendURL = cfg.FrontendURL
+
+	paymentGateway := paymentservice.NewPayMongoGateway(
+		cfg.PayMongoSecretKey,
+		cfg.PayMongoWebhookSecret,
+		cfg.PayMongoPaymentMethods,
+	)
+	payments := paymentservice.NewPaymentService(repos.Payments, redisClient, paymentGateway, cfg.FrontendURL)
+	payments.SuccessURL = cfg.PayMongoSuccessURL
+	payments.CancelURL = cfg.PayMongoCancelURL
+
+	bookings := bookingservice.NewBookingService(repos.Bookings, redisClient)
+	bookings.Payments = payments
+
 	return Services{
 		Auth:      auth,
 		Users:     userservice.NewUserService(repos.Users, sharedCtx.UserIDFromCtx, redisClient),
 		Tenants:   tenantservice.NewTenantService(repos.Tenants, redisClient),
 		Patients:  patientservice.NewPatientService(repos.Patients, redisClient),
-		Bookings:  bookingservice.NewBookingService(repos.Bookings, redisClient),
+		Bookings:  bookings,
 		Messaging: messagingservice.NewMessagingService(repos.Messaging, redisClient, messagingservice.NewEncryptor(cfg.MessageEncryptionKey)),
+		Payments:  payments,
 	}
 }
 

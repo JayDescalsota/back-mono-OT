@@ -31,6 +31,18 @@ type Config struct {
 	RedisPassword string
 	// MessageEncryptionKey encrypts chat message keys end-to-end.
 	MessageEncryptionKey string
+
+	// Payment gateway (PayMongo). Optional: the app boots without it, but
+	// top-ups fail until PAYMONGO_SECRET_KEY is set.
+	PayMongoSecretKey     string
+	PayMongoWebhookSecret string
+	// PayMongoPaymentMethods is a CSV of preferred method types
+	// (e.g. "card,gcash,qrph"); intersected with account capabilities.
+	PayMongoPaymentMethods []string
+	// PayMongoSuccessURL / PayMongoCancelURL override the checkout return
+	// URLs (useful with a tunnel in dev); default to FRONTEND_URL + paths.
+	PayMongoSuccessURL string
+	PayMongoCancelURL  string
 }
 
 // requiredKeys lists env vars with no safe default. If any is missing we
@@ -59,13 +71,33 @@ func mustLoadConfig() Config {
 	}
 
 	return Config{
-		Port:                 env["PORT"],
-		DBURL:                env["DB_URL"],
-		JWTSecret:            env["JWT_SECRET"],
-		BaseURL:              strings.TrimRight(env["BASE_URL"], "/"),
-		FrontendURL:          frontendURL,
-		RedisAddr:            env["REDIS_ADDR"],
-		RedisPassword:        env["REDIS_PASSWORD"],
-		MessageEncryptionKey: env["MESSAGE_ENCRYPTION_KEY"],
+		Port:                   env["PORT"],
+		DBURL:                  env["DB_URL"],
+		JWTSecret:              env["JWT_SECRET"],
+		BaseURL:                strings.TrimRight(env["BASE_URL"], "/"),
+		FrontendURL:            frontendURL,
+		RedisAddr:              env["REDIS_ADDR"],
+		RedisPassword:          env["REDIS_PASSWORD"],
+		MessageEncryptionKey:   env["MESSAGE_ENCRYPTION_KEY"],
+		PayMongoSecretKey:      os.Getenv("PAYMONGO_SECRET_KEY"),
+		PayMongoWebhookSecret:  os.Getenv("PAYMONGO_WEBHOOK_SECRET"),
+		PayMongoPaymentMethods: splitCSV(os.Getenv("PAYMONGO_PAYMENT_METHODS")),
+		PayMongoSuccessURL:     os.Getenv("PAYMONGO_SUCCESS_URL"),
+		PayMongoCancelURL:      os.Getenv("PAYMONGO_CANCEL_URL"),
 	}
+}
+
+// splitCSV parses a comma-separated env value into trimmed non-empty items.
+func splitCSV(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
