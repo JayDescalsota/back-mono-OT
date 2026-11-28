@@ -33,8 +33,7 @@ INSERT INTO modules (resource, label, parent_resource, sort_order, max_level) VA
     ('patient-detail.goals', 'Goals', 'patient-detail', 50, NULL),
     ('patient-detail.treatment_plan', 'Treatment Plan', 'patient-detail', 60, NULL),
     ('patient-detail.assessments', 'Assessments', 'patient-detail', 70, NULL),
-    ('admin.branch-profile', 'Branch Profile', 'admin', 140, NULL),
-    ('admin.branch-address', 'Branch Address', 'admin', 150, NULL),
+    ('admin.branch-settings', 'Branch Settings', 'admin', 140, NULL),
     ('admin.access-management', 'Access Management', 'admin', 160, NULL),
     ('admin.user-management', 'User Management', 'admin', 170, NULL),
     ('admin.appearance', 'Appearance', 'admin', 180, NULL)

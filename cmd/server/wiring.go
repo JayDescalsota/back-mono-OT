@@ -84,13 +84,22 @@ func newServices(cfg Config, repos Repositories, redisClient *redis.Client) Serv
 	payments.SuccessURL = cfg.PayMongoSuccessURL
 	payments.CancelURL = cfg.PayMongoCancelURL
 
+	tenants := tenantservice.NewTenantService(repos.Tenants, redisClient)
+
 	bookings := bookingservice.NewBookingService(repos.Bookings, redisClient)
 	bookings.Payments = payments
+	bookings.BranchTimezone = func(ctx context.Context, branchID string) (string, error) {
+		branch, err := tenants.GetBranchByID(ctx, branchID)
+		if err != nil || branch == nil {
+			return "", err
+		}
+		return branch.Timezone, nil
+	}
 
 	return Services{
 		Auth:      auth,
 		Users:     userservice.NewUserService(repos.Users, sharedCtx.UserIDFromCtx, redisClient),
-		Tenants:   tenantservice.NewTenantService(repos.Tenants, redisClient),
+		Tenants:   tenants,
 		Patients:  patientservice.NewPatientService(repos.Patients, redisClient),
 		Bookings:  bookings,
 		Messaging: messagingservice.NewMessagingService(repos.Messaging, redisClient, messagingservice.NewEncryptor(cfg.MessageEncryptionKey)),

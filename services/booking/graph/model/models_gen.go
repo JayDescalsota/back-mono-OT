@@ -53,6 +53,16 @@ type BranchHoursUpdateInput struct {
 	IsActive  *bool   `json:"is_active,omitempty"`
 }
 
+type BranchSpecialHoursInput struct {
+	Name      string  `json:"name"`
+	Month     int     `json:"month"`
+	Day       int     `json:"day"`
+	IsYearly  bool    `json:"is_yearly"`
+	IsClosed  bool    `json:"is_closed"`
+	OpenTime  *string `json:"open_time,omitempty"`
+	CloseTime *string `json:"close_time,omitempty"`
+}
+
 type CancelAppointmentInput struct {
 	Reason string `json:"reason"`
 }

@@ -575,6 +575,31 @@ input BranchHoursInput {
   close_time: String
 }
 
+# Date-specific override of the weekly hours (holiday or special opening).
+type BranchSpecialHours {
+  id: ID!
+  branch_id: ID!
+  name: String!
+  is_yearly: Boolean!
+  month: Int!
+  day: Int!
+  date: String!
+  is_closed: Boolean!
+  open_time: String
+  close_time: String
+  is_active: Boolean!
+}
+
+input BranchSpecialHoursInput {
+  name: String!
+  month: Int!
+  day: Int!
+  is_yearly: Boolean!
+  is_closed: Boolean!
+  open_time: String
+  close_time: String
+}
+
 input BranchHoursUpdateInput {
   day_of_week: Int
   open_time: String
@@ -790,6 +815,7 @@ type Query {
   guardian(id: ID!): Guardian
   branchHour(id: ID!): BranchHours
   branchHours(branch_id: ID): [BranchHours!]!
+  branchSpecialHours(branch_id: ID): [BranchSpecialHours!]!
   practitionerBranch(id: ID!): PractitionerBranch
   practitionerBranches(branch_id: ID, role: String): [PractitionerBranch!]!
   practitionerAvailability(id: ID!): PractitionerAvailability
@@ -866,6 +892,9 @@ type Mutation {
   createBranchHours(input: BranchHoursInput!): BranchHours!
   updateBranchHours(id: ID!, input: BranchHoursUpdateInput!): BranchHours!
   deleteBranchHours(id: ID!): Boolean!
+  createBranchSpecialHours(input: BranchSpecialHoursInput!): BranchSpecialHours!
+  updateBranchSpecialHours(id: ID!, input: BranchSpecialHoursInput!): BranchSpecialHours!
+  deleteBranchSpecialHours(id: ID!): Boolean!
   createPractitionerBranch(input: PractitionerBranchInput!): PractitionerBranch!
   deletePractitionerBranch(id: ID!): Boolean!
   createPractitionerAvailability(input: PractitionerAvailabilityInput!): PractitionerAvailability!

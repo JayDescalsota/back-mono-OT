@@ -8,6 +8,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/clinicmanager/graph/generated"
@@ -166,13 +167,30 @@ func (r *branchResolver) Address(ctx context.Context, obj *db2.BunBranch) (*db2.
 
 // DayOfWeek is the resolver for the day_of_week field.
 func (r *branchHoursResolver) DayOfWeek(ctx context.Context, obj *db.BunBranchHours) (int, error) {
-	days := []string{"MO", "TU", "WE", "TH", "FR", "SA", "SU"}
-	for i, d := range days {
-		for j := 0; j < len(obj.RecurrenceRule)-1; j++ {
-			if obj.RecurrenceRule[j:j+2] == d {
-				return i, nil
-			}
-		}
+	// Read only the BYDAY part — "WEEKLY" also contains "WE", which used to
+	// make every non-Monday row report Wednesday.
+	rule := obj.RecurrenceRule
+	const marker = "BYDAY="
+	idx := strings.Index(rule, marker)
+	if idx < 0 {
+		return 0, nil
+	}
+	code := strings.SplitN(rule[idx+len(marker):], ",", 2)[0]
+	switch strings.TrimSpace(code) {
+	case "MO":
+		return 0, nil
+	case "TU":
+		return 1, nil
+	case "WE":
+		return 2, nil
+	case "TH":
+		return 3, nil
+	case "FR":
+		return 4, nil
+	case "SA":
+		return 5, nil
+	case "SU":
+		return 6, nil
 	}
 	return 0, nil
 }
@@ -206,6 +224,39 @@ func (r *branchHoursResolver) UpdatedAt(ctx context.Context, obj *db.BunBranchHo
 		return nil, nil
 	}
 	s := obj.UpdatedAt.Format(time.RFC3339)
+	return &s, nil
+}
+
+// Month is the resolver for the month field.
+func (r *branchSpecialHoursResolver) Month(ctx context.Context, obj *db.BunBranchSpecialHours) (int, error) {
+	return int(obj.SpecialDate.Month()), nil
+}
+
+// Day is the resolver for the day field.
+func (r *branchSpecialHoursResolver) Day(ctx context.Context, obj *db.BunBranchSpecialHours) (int, error) {
+	return obj.SpecialDate.Day(), nil
+}
+
+// Date is the resolver for the date field.
+func (r *branchSpecialHoursResolver) Date(ctx context.Context, obj *db.BunBranchSpecialHours) (string, error) {
+	return obj.SpecialDate.Format("2006-01-02"), nil
+}
+
+// OpenTime is the resolver for the open_time field.
+func (r *branchSpecialHoursResolver) OpenTime(ctx context.Context, obj *db.BunBranchSpecialHours) (*string, error) {
+	if obj.OpenTime == nil || obj.OpenTime.IsZero() {
+		return nil, nil
+	}
+	s := obj.OpenTime.Format("15:04")
+	return &s, nil
+}
+
+// CloseTime is the resolver for the close_time field.
+func (r *branchSpecialHoursResolver) CloseTime(ctx context.Context, obj *db.BunBranchSpecialHours) (*string, error) {
+	if obj.CloseTime == nil || obj.CloseTime.IsZero() {
+		return nil, nil
+	}
+	s := obj.CloseTime.Format("15:04")
 	return &s, nil
 }
 
@@ -660,6 +711,21 @@ func (r *mutationResolver) UpdateBranchHours(ctx context.Context, id string, inp
 // DeleteBranchHours is the resolver for the deleteBranchHours field.
 func (r *mutationResolver) DeleteBranchHours(ctx context.Context, id string) (bool, error) {
 	return r.BookingService.DeleteBranchHours(ctx, id)
+}
+
+// CreateBranchSpecialHours is the resolver for the createBranchSpecialHours field.
+func (r *mutationResolver) CreateBranchSpecialHours(ctx context.Context, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error) {
+	return r.BookingService.CreateSpecialHours(ctx, mustToSvc[bookingmodel.BranchSpecialHoursInput](input))
+}
+
+// UpdateBranchSpecialHours is the resolver for the updateBranchSpecialHours field.
+func (r *mutationResolver) UpdateBranchSpecialHours(ctx context.Context, id string, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error) {
+	return r.BookingService.UpdateSpecialHours(ctx, id, mustToSvc[bookingmodel.BranchSpecialHoursInput](input))
+}
+
+// DeleteBranchSpecialHours is the resolver for the deleteBranchSpecialHours field.
+func (r *mutationResolver) DeleteBranchSpecialHours(ctx context.Context, id string) (bool, error) {
+	return r.BookingService.DeleteSpecialHours(ctx, id)
 }
 
 // CreatePractitionerBranch is the resolver for the createPractitionerBranch field.
@@ -1161,6 +1227,19 @@ func (r *queryResolver) BranchHours(ctx context.Context, branchID *string) ([]*d
 	return r.BookingService.ListBranchHours(ctx)
 }
 
+// BranchSpecialHours is the resolver for the branchSpecialHours field.
+func (r *queryResolver) BranchSpecialHours(ctx context.Context, branchID *string) ([]*db.BunBranchSpecialHours, error) {
+	tc := sharedctx.FromContext(ctx)
+	id := tc.BranchID
+	if branchID != nil && *branchID != "" {
+		id = *branchID
+	}
+	if id == "" {
+		return []*db.BunBranchSpecialHours{}, nil
+	}
+	return r.BookingService.GetSpecialHoursByBranch(ctx, id)
+}
+
 // PractitionerBranch is the resolver for the practitionerBranch field.
 func (r *queryResolver) PractitionerBranch(ctx context.Context, id string) (*db.BunPractitionerBranch, error) {
 	return r.BookingService.GetPractitionerBranchByID(ctx, id)
@@ -1603,6 +1682,11 @@ func (r *Resolver) Branch() generated.BranchResolver { return &branchResolver{r}
 // BranchHours returns generated.BranchHoursResolver implementation.
 func (r *Resolver) BranchHours() generated.BranchHoursResolver { return &branchHoursResolver{r} }
 
+// BranchSpecialHours returns generated.BranchSpecialHoursResolver implementation.
+func (r *Resolver) BranchSpecialHours() generated.BranchSpecialHoursResolver {
+	return &branchSpecialHoursResolver{r}
+}
+
 // Guardian returns generated.GuardianResolver implementation.
 func (r *Resolver) Guardian() generated.GuardianResolver { return &guardianResolver{r} }
 
@@ -1659,6 +1743,7 @@ type (
 	appointmentTypeResolver          struct{ *Resolver }
 	branchResolver                   struct{ *Resolver }
 	branchHoursResolver              struct{ *Resolver }
+	branchSpecialHoursResolver       struct{ *Resolver }
 	guardianResolver                 struct{ *Resolver }
 	messageResolver                  struct{ *Resolver }
 	messageParticipantResolver       struct{ *Resolver }

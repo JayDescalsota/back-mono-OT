@@ -29,6 +29,32 @@ type BunBranchHours struct {
 
 func (BunBranchHours) IsEntity() {}
 
+// BunBranchSpecialHours is a date-specific override of the weekly branch
+// hours (e.g. a holiday closure or a special opening window).
+type BunBranchSpecialHours struct {
+	bun.BaseModel `bun:"table:booking_branch_special_hours"`
+
+	ID          string     `bun:"id,pk" json:"id"`
+	TenantID    string     `bun:"tenant_id" json:"tenant_id"`
+	BranchID    string     `bun:"branch_id" json:"branch_id"`
+	Name        string     `bun:"name,notnull,default:''" json:"name"`
+	IsYearly    bool       `bun:"is_yearly,notnull,default:false" json:"is_yearly"`
+	SpecialDate time.Time  `bun:"special_date" json:"special_date"`
+	IsClosed    bool       `bun:"is_closed" json:"is_closed"`
+	OpenTime    *time.Time `bun:"open_time" json:"open_time"`
+	CloseTime   *time.Time `bun:"close_time" json:"close_time"`
+	IsActive    bool       `bun:"is_active" json:"is_active"`
+
+	CreatedAt     time.Time `bun:"created_at" json:"-"`
+	UpdatedAt     time.Time `bun:"updated_at" json:"-"`
+	CreatedBy     *string   `bun:"created_by" json:"-"`
+	CreatedAction string    `bun:"created_action" json:"-"`
+	UpdatedBy     *string   `bun:"updated_by" json:"-"`
+	UpdatedAction string    `bun:"updated_action" json:"-"`
+}
+
+func (BunBranchSpecialHours) IsEntity() {}
+
 // BunPractitionerBranch defines practitioner branch affiliation.
 type BunPractitionerBranch struct {
 	bun.BaseModel  `bun:"table:booking_practitioner_branches"`

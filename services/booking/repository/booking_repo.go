@@ -46,6 +46,43 @@ func (r *BookingRepository) FindBranchHoursByBranch(ctx context.Context, branchI
 	return list, nil
 }
 
+// BranchSpecialHours
+
+func (r *BookingRepository) FindSpecialHoursByID(ctx context.Context, id string) (*db.BunBranchSpecialHours, error) {
+	var m db.BunBranchSpecialHours
+	err := r.tenantdb.NewSelect(ctx, &m).Where("id = ?", id).Scan(ctx)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (r *BookingRepository) FindSpecialHoursByBranch(ctx context.Context, branchID string) ([]*db.BunBranchSpecialHours, error) {
+	var list []*db.BunBranchSpecialHours
+	err := r.tenantdb.NewSelect(ctx, &list).
+		Where("branch_id = ?", branchID).
+		Where("is_active = true").
+		Order("special_date ASC").
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *BookingRepository) CreateSpecialHours(ctx context.Context, m *db.BunBranchSpecialHours) error {
+	_, err := r.tenantdb.NewInsert(m).Exec(ctx)
+	return err
+}
+
+func (r *BookingRepository) UpdateSpecialHours(ctx context.Context, m *db.BunBranchSpecialHours) error {
+	_, err := r.tenantdb.NewUpdate(ctx, m).Where("id = ?", m.ID).Exec(ctx)
+	return err
+}
+
 func (r *BookingRepository) ListBranchHours(ctx context.Context) ([]*db.BunBranchHours, error) {
 	var list []*db.BunBranchHours
 	err := r.db.NewSelect(ctx, &list).Scan(ctx)

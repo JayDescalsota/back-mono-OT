@@ -38,6 +38,7 @@ type ResolverRoot interface {
 	AppointmentType() AppointmentTypeResolver
 	Branch() BranchResolver
 	BranchHours() BranchHoursResolver
+	BranchSpecialHours() BranchSpecialHoursResolver
 	Guardian() GuardianResolver
 	Message() MessageResolver
 	MessageParticipant() MessageParticipantResolver
@@ -190,6 +191,20 @@ type ComplexityRoot struct {
 		PriceCents        func(childComplexity int) int
 	}
 
+	BranchSpecialHours struct {
+		BranchID  func(childComplexity int) int
+		CloseTime func(childComplexity int) int
+		Date      func(childComplexity int) int
+		Day       func(childComplexity int) int
+		ID        func(childComplexity int) int
+		IsActive  func(childComplexity int) int
+		IsClosed  func(childComplexity int) int
+		IsYearly  func(childComplexity int) int
+		Month     func(childComplexity int) int
+		Name      func(childComplexity int) int
+		OpenTime  func(childComplexity int) int
+	}
+
 	Goal struct {
 		Goal      func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -267,6 +282,7 @@ type ComplexityRoot struct {
 		CreateAppointment              func(childComplexity int, input model.AppointmentInput) int
 		CreateBranch                   func(childComplexity int, input model.CreateBranchInput) int
 		CreateBranchHours              func(childComplexity int, input model.BranchHoursInput) int
+		CreateBranchSpecialHours       func(childComplexity int, input model.BranchSpecialHoursInput) int
 		CreateGoal                     func(childComplexity int, input model.GoalInput) int
 		CreateGuardian                 func(childComplexity int, input model.GuardianInput) int
 		CreatePatient                  func(childComplexity int, input model.PatientInput) int
@@ -283,6 +299,7 @@ type ComplexityRoot struct {
 		CreateThread                   func(childComplexity int, input model.ThreadInput) int
 		CreateUser                     func(childComplexity int, input model.CreateUserInput) int
 		DeleteBranchHours              func(childComplexity int, id string) int
+		DeleteBranchSpecialHours       func(childComplexity int, id string) int
 		DeleteGoal                     func(childComplexity int, id string) int
 		DeleteGuardian                 func(childComplexity int, id string) int
 		DeleteMessage                  func(childComplexity int, id string) int
@@ -324,6 +341,7 @@ type ComplexityRoot struct {
 		UpdateAssignment               func(childComplexity int, id string, input model.UpdateAssignmentInput) int
 		UpdateBranch                   func(childComplexity int, id string, input model.BranchInput) int
 		UpdateBranchHours              func(childComplexity int, id string, input model.BranchHoursUpdateInput) int
+		UpdateBranchSpecialHours       func(childComplexity int, id string, input model.BranchSpecialHoursInput) int
 		UpdateGoal                     func(childComplexity int, id string, input model.GoalUpdateInput) int
 		UpdateGuardian                 func(childComplexity int, id string, input model.GuardianUpdateInput) int
 		UpdatePatient                  func(childComplexity int, id string, input model.PatientUpdateInput) int
@@ -454,6 +472,7 @@ type ComplexityRoot struct {
 		BranchHours                func(childComplexity int, branchID *string) int
 		BranchPaymentMode          func(childComplexity int) int
 		BranchServices             func(childComplexity int) int
+		BranchSpecialHours         func(childComplexity int, branchID *string) int
 		BranchesByTenant           func(childComplexity int, tenantID string) int
 		Guardian                   func(childComplexity int, id string) int
 		InviteByToken              func(childComplexity int, token string) int
@@ -703,6 +722,14 @@ type BranchHoursResolver interface {
 	CreatedAt(ctx context.Context, obj *db.BunBranchHours) (string, error)
 	UpdatedAt(ctx context.Context, obj *db.BunBranchHours) (*string, error)
 }
+type BranchSpecialHoursResolver interface {
+	Month(ctx context.Context, obj *db.BunBranchSpecialHours) (int, error)
+	Day(ctx context.Context, obj *db.BunBranchSpecialHours) (int, error)
+	Date(ctx context.Context, obj *db.BunBranchSpecialHours) (string, error)
+
+	OpenTime(ctx context.Context, obj *db.BunBranchSpecialHours) (*string, error)
+	CloseTime(ctx context.Context, obj *db.BunBranchSpecialHours) (*string, error)
+}
 type GuardianResolver interface {
 	Address(ctx context.Context, obj *db1.BunGuardians) (*db2.BunAddress, error)
 	Patient(ctx context.Context, obj *db1.BunGuardians) ([]*db1.BunPatients, error)
@@ -766,6 +793,9 @@ type MutationResolver interface {
 	CreateBranchHours(ctx context.Context, input model.BranchHoursInput) (*db.BunBranchHours, error)
 	UpdateBranchHours(ctx context.Context, id string, input model.BranchHoursUpdateInput) (*db.BunBranchHours, error)
 	DeleteBranchHours(ctx context.Context, id string) (bool, error)
+	CreateBranchSpecialHours(ctx context.Context, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error)
+	UpdateBranchSpecialHours(ctx context.Context, id string, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error)
+	DeleteBranchSpecialHours(ctx context.Context, id string) (bool, error)
 	CreatePractitionerBranch(ctx context.Context, input model.PractitionerBranchInput) (*db.BunPractitionerBranch, error)
 	DeletePractitionerBranch(ctx context.Context, id string) (bool, error)
 	CreatePractitionerAvailability(ctx context.Context, input model.PractitionerAvailabilityInput) (*db.BunPractitionerAvailability, error)
@@ -852,6 +882,7 @@ type QueryResolver interface {
 	Guardian(ctx context.Context, id string) (*db1.BunGuardians, error)
 	BranchHour(ctx context.Context, id string) (*db.BunBranchHours, error)
 	BranchHours(ctx context.Context, branchID *string) ([]*db.BunBranchHours, error)
+	BranchSpecialHours(ctx context.Context, branchID *string) ([]*db.BunBranchSpecialHours, error)
 	PractitionerBranch(ctx context.Context, id string) (*db.BunPractitionerBranch, error)
 	PractitionerBranches(ctx context.Context, branchID *string, role *string) ([]*db.BunPractitionerBranch, error)
 	PractitionerAvailability(ctx context.Context, id string) (*db.BunPractitionerAvailability, error)
@@ -1543,6 +1574,73 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.BranchService.PriceCents(childComplexity), true
 
+	case "BranchSpecialHours.branch_id":
+		if e.ComplexityRoot.BranchSpecialHours.BranchID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.BranchID(childComplexity), true
+	case "BranchSpecialHours.close_time":
+		if e.ComplexityRoot.BranchSpecialHours.CloseTime == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.CloseTime(childComplexity), true
+	case "BranchSpecialHours.date":
+		if e.ComplexityRoot.BranchSpecialHours.Date == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.Date(childComplexity), true
+	case "BranchSpecialHours.day":
+		if e.ComplexityRoot.BranchSpecialHours.Day == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.Day(childComplexity), true
+	case "BranchSpecialHours.id":
+		if e.ComplexityRoot.BranchSpecialHours.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.ID(childComplexity), true
+	case "BranchSpecialHours.is_active":
+		if e.ComplexityRoot.BranchSpecialHours.IsActive == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.IsActive(childComplexity), true
+	case "BranchSpecialHours.is_closed":
+		if e.ComplexityRoot.BranchSpecialHours.IsClosed == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.IsClosed(childComplexity), true
+	case "BranchSpecialHours.is_yearly":
+		if e.ComplexityRoot.BranchSpecialHours.IsYearly == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.IsYearly(childComplexity), true
+	case "BranchSpecialHours.month":
+		if e.ComplexityRoot.BranchSpecialHours.Month == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.Month(childComplexity), true
+	case "BranchSpecialHours.name":
+		if e.ComplexityRoot.BranchSpecialHours.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.Name(childComplexity), true
+	case "BranchSpecialHours.open_time":
+		if e.ComplexityRoot.BranchSpecialHours.OpenTime == nil {
+			break
+		}
+
+		return e.ComplexityRoot.BranchSpecialHours.OpenTime(childComplexity), true
+
 	case "Goal.goal":
 		if e.ComplexityRoot.Goal.Goal == nil {
 			break
@@ -1947,6 +2045,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreateBranchHours(childComplexity, args["input"].(model.BranchHoursInput)), true
+	case "Mutation.createBranchSpecialHours":
+		if e.ComplexityRoot.Mutation.CreateBranchSpecialHours == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createBranchSpecialHours_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateBranchSpecialHours(childComplexity, args["input"].(model.BranchSpecialHoursInput)), true
 	case "Mutation.createGoal":
 		if e.ComplexityRoot.Mutation.CreateGoal == nil {
 			break
@@ -2123,6 +2232,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.DeleteBranchHours(childComplexity, args["id"].(string)), true
+	case "Mutation.deleteBranchSpecialHours":
+		if e.ComplexityRoot.Mutation.DeleteBranchSpecialHours == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteBranchSpecialHours_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteBranchSpecialHours(childComplexity, args["id"].(string)), true
 	case "Mutation.deleteGoal":
 		if e.ComplexityRoot.Mutation.DeleteGoal == nil {
 			break
@@ -2574,6 +2694,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UpdateBranchHours(childComplexity, args["id"].(string), args["input"].(model.BranchHoursUpdateInput)), true
+	case "Mutation.updateBranchSpecialHours":
+		if e.ComplexityRoot.Mutation.UpdateBranchSpecialHours == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateBranchSpecialHours_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateBranchSpecialHours(childComplexity, args["id"].(string), args["input"].(model.BranchSpecialHoursInput)), true
 	case "Mutation.updateGoal":
 		if e.ComplexityRoot.Mutation.UpdateGoal == nil {
 			break
@@ -3294,6 +3425,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.BranchServices(childComplexity), true
+	case "Query.branchSpecialHours":
+		if e.ComplexityRoot.Query.BranchSpecialHours == nil {
+			break
+		}
+
+		args, err := ec.field_Query_branchSpecialHours_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.BranchSpecialHours(childComplexity, args["branch_id"].(*string)), true
 	case "Query.branchesByTenant":
 		if e.ComplexityRoot.Query.BranchesByTenant == nil {
 			break
@@ -4432,6 +4574,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputBranchHoursInput,
 		ec.unmarshalInputBranchHoursUpdateInput,
 		ec.unmarshalInputBranchInput,
+		ec.unmarshalInputBranchSpecialHoursInput,
 		ec.unmarshalInputCancelAppointmentInput,
 		ec.unmarshalInputCreateBranchInput,
 		ec.unmarshalInputCreatePlatformUserInput,
@@ -5117,6 +5260,31 @@ input BranchHoursInput {
   close_time: String
 }
 
+# Date-specific override of the weekly hours (holiday or special opening).
+type BranchSpecialHours {
+  id: ID!
+  branch_id: ID!
+  name: String!
+  is_yearly: Boolean!
+  month: Int!
+  day: Int!
+  date: String!
+  is_closed: Boolean!
+  open_time: String
+  close_time: String
+  is_active: Boolean!
+}
+
+input BranchSpecialHoursInput {
+  name: String!
+  month: Int!
+  day: Int!
+  is_yearly: Boolean!
+  is_closed: Boolean!
+  open_time: String
+  close_time: String
+}
+
 input BranchHoursUpdateInput {
   day_of_week: Int
   open_time: String
@@ -5332,6 +5500,7 @@ type Query {
   guardian(id: ID!): Guardian
   branchHour(id: ID!): BranchHours
   branchHours(branch_id: ID): [BranchHours!]!
+  branchSpecialHours(branch_id: ID): [BranchSpecialHours!]!
   practitionerBranch(id: ID!): PractitionerBranch
   practitionerBranches(branch_id: ID, role: String): [PractitionerBranch!]!
   practitionerAvailability(id: ID!): PractitionerAvailability
@@ -5408,6 +5577,9 @@ type Mutation {
   createBranchHours(input: BranchHoursInput!): BranchHours!
   updateBranchHours(id: ID!, input: BranchHoursUpdateInput!): BranchHours!
   deleteBranchHours(id: ID!): Boolean!
+  createBranchSpecialHours(input: BranchSpecialHoursInput!): BranchSpecialHours!
+  updateBranchSpecialHours(id: ID!, input: BranchSpecialHoursInput!): BranchSpecialHours!
+  deleteBranchSpecialHours(id: ID!): Boolean!
   createPractitionerBranch(input: PractitionerBranchInput!): PractitionerBranch!
   deletePractitionerBranch(id: ID!): Boolean!
   createPractitionerAvailability(input: PractitionerAvailabilityInput!): PractitionerAvailability!
@@ -5716,6 +5888,34 @@ func (ec *executionContext) childFields_BranchService(ctx context.Context, field
 		return ec.fieldContext_BranchService_isOffered(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type BranchService", field.Name)
+}
+
+func (ec *executionContext) childFields_BranchSpecialHours(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_BranchSpecialHours_id(ctx, field)
+	case "branch_id":
+		return ec.fieldContext_BranchSpecialHours_branch_id(ctx, field)
+	case "name":
+		return ec.fieldContext_BranchSpecialHours_name(ctx, field)
+	case "is_yearly":
+		return ec.fieldContext_BranchSpecialHours_is_yearly(ctx, field)
+	case "month":
+		return ec.fieldContext_BranchSpecialHours_month(ctx, field)
+	case "day":
+		return ec.fieldContext_BranchSpecialHours_day(ctx, field)
+	case "date":
+		return ec.fieldContext_BranchSpecialHours_date(ctx, field)
+	case "is_closed":
+		return ec.fieldContext_BranchSpecialHours_is_closed(ctx, field)
+	case "open_time":
+		return ec.fieldContext_BranchSpecialHours_open_time(ctx, field)
+	case "close_time":
+		return ec.fieldContext_BranchSpecialHours_close_time(ctx, field)
+	case "is_active":
+		return ec.fieldContext_BranchSpecialHours_is_active(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type BranchSpecialHours", field.Name)
 }
 
 func (ec *executionContext) childFields_Goal(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -6632,6 +6832,20 @@ func (ec *executionContext) field_Mutation_createBranchHours_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createBranchSpecialHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.BranchSpecialHoursInput, error) {
+			return ec.unmarshalNBranchSpecialHoursInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchSpecialHoursInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createBranch_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -6881,6 +7095,20 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 }
 
 func (ec *executionContext) field_Mutation_deleteBranchHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteBranchSpecialHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
@@ -7630,6 +7858,28 @@ func (ec *executionContext) field_Mutation_updateBranchHours_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateBranchSpecialHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.BranchSpecialHoursInput, error) {
+			return ec.unmarshalNBranchSpecialHoursInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchSpecialHoursInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateBranch_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -8043,6 +8293,20 @@ func (ec *executionContext) field_Query_branchHour_args(ctx context.Context, raw
 }
 
 func (ec *executionContext) field_Query_branchHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "branch_id",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOID2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["branch_id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_branchSpecialHours_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "branch_id",
@@ -11064,6 +11328,259 @@ func (ec *executionContext) _BranchService_isOffered(ctx context.Context, field 
 }
 func (ec *executionContext) fieldContext_BranchService_isOffered(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("BranchService", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_id(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_branch_id(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_branch_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BranchID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_branch_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_name(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_is_yearly(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_is_yearly(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsYearly, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_is_yearly(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_month(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_month(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BranchSpecialHours().Month(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_month(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, true, true, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_day(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_day(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BranchSpecialHours().Day(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_day(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, true, true, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_date(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_date(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BranchSpecialHours().Date(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_date(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_is_closed(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_is_closed(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsClosed, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_is_closed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_open_time(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_open_time(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BranchSpecialHours().OpenTime(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_open_time(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_close_time(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_close_time(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.BranchSpecialHours().CloseTime(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_close_time(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, true, true, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _BranchSpecialHours_is_active(ctx context.Context, field graphql.CollectedField, obj *db.BunBranchSpecialHours) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_BranchSpecialHours_is_active(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_BranchSpecialHours_is_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("BranchSpecialHours", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Goal_id(ctx context.Context, field graphql.CollectedField, obj *db1.BunGoal) (ret graphql.Marshaler) {
@@ -14136,6 +14653,138 @@ func (ec *executionContext) fieldContext_Mutation_deleteBranchHours(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteBranchHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createBranchSpecialHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateBranchSpecialHours(ctx, fc.Args["input"].(model.BranchSpecialHoursInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *db.BunBranchSpecialHours) graphql.Marshaler {
+			return ec.marshalNBranchSpecialHours2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHours(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchSpecialHours(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createBranchSpecialHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateBranchSpecialHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateBranchSpecialHours(ctx, fc.Args["id"].(string), fc.Args["input"].(model.BranchSpecialHoursInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *db.BunBranchSpecialHours) graphql.Marshaler {
+			return ec.marshalNBranchSpecialHours2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHours(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchSpecialHours(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateBranchSpecialHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteBranchSpecialHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteBranchSpecialHours(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteBranchSpecialHours(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteBranchSpecialHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -18440,6 +19089,50 @@ func (ec *executionContext) fieldContext_Query_branchHours(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_branchHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_branchSpecialHours(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_branchSpecialHours(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().BranchSpecialHours(ctx, fc.Args["branch_id"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*db.BunBranchSpecialHours) graphql.Marshaler {
+			return ec.marshalNBranchSpecialHours2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHoursᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_branchSpecialHours(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_BranchSpecialHours(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_branchSpecialHours_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24074,6 +24767,78 @@ func (ec *executionContext) unmarshalInputBranchInput(ctx context.Context, obj a
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputBranchSpecialHoursInput(ctx context.Context, obj any) (model.BranchSpecialHoursInput, error) {
+	var it model.BranchSpecialHoursInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "month", "day", "is_yearly", "is_closed", "open_time", "close_time"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "month":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("month"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Month = data
+		case "day":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("day"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Day = data
+		case "is_yearly":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_yearly"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsYearly = data
+		case "is_closed":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("is_closed"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsClosed = data
+		case "open_time":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("open_time"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OpenTime = data
+		case "close_time":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("close_time"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CloseTime = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCancelAppointmentInput(ctx context.Context, obj any) (model.CancelAppointmentInput, error) {
 	var it model.CancelAppointmentInput
 	if obj == nil {
@@ -27566,6 +28331,259 @@ func (ec *executionContext) _BranchService(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var branchSpecialHoursImplementors = []string{"BranchSpecialHours"}
+
+func (ec *executionContext) _BranchSpecialHours(ctx context.Context, sel ast.SelectionSet, obj *db.BunBranchSpecialHours) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, branchSpecialHoursImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BranchSpecialHours")
+		case "id":
+			out.Values[i] = ec._BranchSpecialHours_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "branch_id":
+			out.Values[i] = ec._BranchSpecialHours_branch_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._BranchSpecialHours_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "is_yearly":
+			out.Values[i] = ec._BranchSpecialHours_is_yearly(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "month":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BranchSpecialHours_month(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "day":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BranchSpecialHours_day(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "date":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BranchSpecialHours_date(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "is_closed":
+			out.Values[i] = ec._BranchSpecialHours_is_closed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "open_time":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BranchSpecialHours_open_time(ctx, field, obj)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "close_time":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._BranchSpecialHours_close_time(ctx, field, obj)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "is_active":
+			out.Values[i] = ec._BranchSpecialHours_is_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var goalImplementors = []string{"Goal"}
 
 func (ec *executionContext) _Goal(ctx context.Context, sel ast.SelectionSet, obj *db1.BunGoal) graphql.Marshaler {
@@ -28658,6 +29676,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteBranchHours":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteBranchHours(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createBranchSpecialHours":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createBranchSpecialHours(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateBranchSpecialHours":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateBranchSpecialHours(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteBranchSpecialHours":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteBranchSpecialHours(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -30593,6 +31632,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_branchHours(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "branchSpecialHours":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_branchSpecialHours(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -33611,6 +34672,41 @@ func (ec *executionContext) marshalNBranchService2ᚖgithubᚗcomᚋclinicmanage
 		return graphql.Null
 	}
 	return ec._BranchService(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBranchSpecialHours2githubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHours(ctx context.Context, sel ast.SelectionSet, v db.BunBranchSpecialHours) graphql.Marshaler {
+	return ec._BranchSpecialHours(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBranchSpecialHours2ᚕᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHoursᚄ(ctx context.Context, sel ast.SelectionSet, v []*db.BunBranchSpecialHours) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNBranchSpecialHours2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHours(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBranchSpecialHours2ᚖgithubᚗcomᚋclinicmanagerᚋservicesᚋbookingᚋdbᚐBunBranchSpecialHours(ctx context.Context, sel ast.SelectionSet, v *db.BunBranchSpecialHours) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BranchSpecialHours(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBranchSpecialHoursInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐBranchSpecialHoursInput(ctx context.Context, v any) (model.BranchSpecialHoursInput, error) {
+	res, err := ec.unmarshalInputBranchSpecialHoursInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNCancelAppointmentInput2githubᚗcomᚋclinicmanagerᚋgraphᚋmodelᚐCancelAppointmentInput(ctx context.Context, v any) (model.CancelAppointmentInput, error) {

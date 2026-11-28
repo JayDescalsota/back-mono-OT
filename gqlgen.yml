@@ -34,6 +34,8 @@ models:
     model: github.com/clinicmanager/services/patient/db.BunGoal
   BranchHours:
     model: github.com/clinicmanager/services/booking/db.BunBranchHours
+  BranchSpecialHours:
+    model: github.com/clinicmanager/services/booking/db.BunBranchSpecialHours
   PractitionerBranch:
     model: github.com/clinicmanager/services/booking/db.BunPractitionerBranch
   PractitionerAvailability:

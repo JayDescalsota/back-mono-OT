@@ -10,6 +10,12 @@
 // function lives in the file named next to it.
 package main
 
+import (
+	// Embed the IANA timezone database so branch hours can be read in the
+	// branch's local time even on a minimal alpine container (no tzdata pkg).
+	_ "time/tzdata"
+)
+
 func main() {
 	// 1. Read environment variables (PORT, DB_URL, JWT_SECRET, …).
 	cfg := mustLoadConfig()

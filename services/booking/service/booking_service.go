@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/clinicmanager/services/booking/db"
@@ -29,6 +30,9 @@ type BookingService struct {
 	// Payments is set in wiring (monolith) to enforce prepaid credits.
 	// Nil disables money checks (e.g. in unit tests).
 	Payments FundsLedger
+	// BranchTimezone resolves a branch's IANA timezone so branch hours are
+	// read as wall-clock times. Nil falls back to UTC.
+	BranchTimezone func(ctx context.Context, branchID string) (string, error)
 }
 
 // FundsLedger is the subset of the payment service that scheduling needs.
@@ -192,6 +196,272 @@ func (s *BookingService) DeleteBranchHours(ctx context.Context, id string) (bool
 	}
 	s.cacheDel(ctx, cache.Key("booking", "branch_hours", id))
 	return true, nil
+}
+
+// Branch special hours (date overrides for holidays / special openings)
+
+func (s *BookingService) GetSpecialHoursByBranch(ctx context.Context, branchID string) ([]*db.BunBranchSpecialHours, error) {
+	return s.BookingRepository.FindSpecialHoursByBranch(ctx, branchID)
+}
+
+func (s *BookingService) CreateSpecialHours(ctx context.Context, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error) {
+	tctx := sharedCtx.FromContext(ctx)
+	if tctx.TenantID == "" {
+		return nil, fmt.Errorf("missing tenant context")
+	}
+	date, err := resolveSpecialDate(input)
+	if err != nil {
+		return nil, err
+	}
+	if !input.IsClosed {
+		if input.OpenTime == nil || input.CloseTime == nil {
+			return nil, fmt.Errorf("set both an open and a close time, or mark the day as closed")
+		}
+		if !parseTimeVal(*input.OpenTime).Before(parseTimeVal(*input.CloseTime)) {
+			return nil, fmt.Errorf("closing time must be after opening time")
+		}
+	}
+
+	now := time.Now()
+	m := &db.BunBranchSpecialHours{
+		ID:            uuid.NewString(),
+		TenantID:      tctx.TenantID,
+		BranchID:      tctx.BranchID,
+		Name:          strings.TrimSpace(input.Name),
+		IsYearly:      input.IsYearly,
+		SpecialDate:   date,
+		IsClosed:      input.IsClosed,
+		IsActive:      true,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		CreatedAction: "CREATE",
+		UpdatedAction: "CREATE",
+	}
+	if !input.IsClosed {
+		open := parseTimeVal(*input.OpenTime)
+		close := parseTimeVal(*input.CloseTime)
+		m.OpenTime = &open
+		m.CloseTime = &close
+	}
+	if err := s.BookingRepository.CreateSpecialHours(ctx, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (s *BookingService) UpdateSpecialHours(ctx context.Context, id string, input model.BranchSpecialHoursInput) (*db.BunBranchSpecialHours, error) {
+	existing, err := s.BookingRepository.FindSpecialHoursByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, fmt.Errorf("special schedule not found")
+	}
+	date, err := resolveSpecialDate(input)
+	if err != nil {
+		return nil, err
+	}
+	if !input.IsClosed {
+		if input.OpenTime == nil || input.CloseTime == nil {
+			return nil, fmt.Errorf("set both an open and a close time, or mark the day as closed")
+		}
+		if !parseTimeVal(*input.OpenTime).Before(parseTimeVal(*input.CloseTime)) {
+			return nil, fmt.Errorf("closing time must be after opening time")
+		}
+	}
+
+	existing.Name = strings.TrimSpace(input.Name)
+	existing.IsYearly = input.IsYearly
+	existing.SpecialDate = date
+	existing.IsClosed = input.IsClosed
+	if input.IsClosed {
+		existing.OpenTime = nil
+		existing.CloseTime = nil
+	} else {
+		open := parseTimeVal(*input.OpenTime)
+		close := parseTimeVal(*input.CloseTime)
+		existing.OpenTime = &open
+		existing.CloseTime = &close
+	}
+	existing.UpdatedAt = time.Now()
+	existing.UpdatedAction = "UPDATE"
+	if err := s.BookingRepository.UpdateSpecialHours(ctx, existing); err != nil {
+		return nil, err
+	}
+	return existing, nil
+}
+
+func (s *BookingService) DeleteSpecialHours(ctx context.Context, id string) (bool, error) {
+	existing, err := s.BookingRepository.FindSpecialHoursByID(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	if existing == nil {
+		return false, nil
+	}
+	existing.IsActive = false
+	existing.UpdatedAt = time.Now()
+	existing.UpdatedAction = "DELETE"
+	if err := s.BookingRepository.UpdateSpecialHours(ctx, existing); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// resolveSpecialDate turns a month/day pair into a stored date. Yearly
+// entries use a leap year (2000) as a stable placeholder so Feb 29 is valid;
+// one-off entries use the upcoming occurrence (this year, or next if past).
+func resolveSpecialDate(input model.BranchSpecialHoursInput) (time.Time, error) {
+	if input.Month < 1 || input.Month > 12 {
+		return time.Time{}, fmt.Errorf("month must be between 1 and 12")
+	}
+	if input.Day < 1 || input.Day > 31 {
+		return time.Time{}, fmt.Errorf("day must be between 1 and 31")
+	}
+	year := time.Now().UTC().Year()
+	if input.IsYearly {
+		year = 2000
+	}
+	date := time.Date(year, time.Month(input.Month), input.Day, 0, 0, 0, 0, time.UTC)
+	if date.Month() != time.Month(input.Month) || date.Day() != input.Day {
+		return time.Time{}, fmt.Errorf("that day does not exist in the selected month")
+	}
+	if !input.IsYearly {
+		today := time.Now().UTC().Truncate(24 * time.Hour)
+		if date.Before(today) {
+			date = date.AddDate(1, 0, 0)
+		}
+	}
+	return date, nil
+}
+
+// specialHoursMatchDay reports whether a stored special schedule applies to
+// the given date: yearly rows match month/day, one-off rows match the date.
+func specialHoursMatchDay(row *db.BunBranchSpecialHours, date time.Time) bool {
+	if row.IsYearly {
+		return row.SpecialDate.Month() == date.Month() && row.SpecialDate.Day() == date.Day()
+	}
+	return row.SpecialDate.Format("2006-01-02") == date.Format("2006-01-02")
+}
+
+// Branch hours enforcement
+//
+// booking_branch_hours stores operating windows as wall-clock times (the date
+// part is a placeholder). Appointments must fit entirely inside one of the
+// branch's active windows for the local weekday. A date-specific override
+// (booking_branch_special_hours) replaces the weekly window for that date.
+
+var dayNames = []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+// branchLocation resolves the branch's timezone, falling back to UTC.
+func (s *BookingService) branchLocation(ctx context.Context, branchID string) *time.Location {
+	if s.BranchTimezone == nil {
+		return time.UTC
+	}
+	name, err := s.BranchTimezone(ctx, branchID)
+	if err != nil || name == "" {
+		return time.UTC
+	}
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
+// wallClockMinutes reads the hour/minute stored for a branch-hours row. Rows
+// are normalised to UTC wall-clock on write, so UTC is the reference here.
+func wallClockMinutes(t time.Time) int {
+	u := t.UTC()
+	return u.Hour()*60 + u.Minute()
+}
+
+func formatMinutes(m int) string {
+	return fmt.Sprintf("%02d:%02d", m/60, m%60)
+}
+
+// validateWithinBranchHours rejects appointments outside the branch's
+// configured operating hours. Branches without active hours stay
+// unrestricted, so existing data keeps working.
+func (s *BookingService) validateWithinBranchHours(ctx context.Context, branchID string, startAt, endAt time.Time) error {
+	if branchID == "" {
+		return nil
+	}
+
+	loc := s.branchLocation(ctx, branchID)
+	localStart := startAt.In(loc)
+	localEnd := endAt.In(loc)
+	if localStart.Year() != localEnd.Year() || localStart.YearDay() != localEnd.YearDay() {
+		return fmt.Errorf("appointments must start and end on the same day within branch hours")
+	}
+	startMin := localStart.Hour()*60 + localStart.Minute()
+	endMin := localEnd.Hour()*60 + localEnd.Minute()
+
+	// A date-specific override (holiday / special opening) wins over the
+	// weekly schedule for that day.
+	specials, err := s.BookingRepository.FindSpecialHoursByBranch(ctx, branchID)
+	if err != nil {
+		return err
+	}
+	dateKey := localStart.Format("2006-01-02")
+	for _, sp := range specials {
+		if !specialHoursMatchDay(sp, localStart) {
+			continue
+		}
+		if sp.IsClosed {
+			return fmt.Errorf("branch is closed on %s (%s)", dateKey, sp.Name)
+		}
+		if sp.OpenTime == nil || sp.CloseTime == nil {
+			return nil // special opening with no time limit
+		}
+		openMin := wallClockMinutes(*sp.OpenTime)
+		closeMin := wallClockMinutes(*sp.CloseTime)
+		if closeMin > openMin && startMin >= openMin && endMin <= closeMin {
+			return nil
+		}
+		return fmt.Errorf("appointment %s-%s is outside special hours on %s (%s-%s)",
+			formatMinutes(startMin), formatMinutes(endMin), dateKey,
+			formatMinutes(openMin), formatMinutes(closeMin))
+	}
+
+	hours, err := s.BookingRepository.FindBranchHoursByBranch(ctx, branchID)
+	if err != nil {
+		return err
+	}
+
+	active := make([]*db.BunBranchHours, 0, len(hours))
+	for _, h := range hours {
+		if h.IsActive && !h.OpenTime.IsZero() && !h.CloseTime.IsZero() && h.RecurrenceRule != "" {
+			active = append(active, h)
+		}
+	}
+	if len(active) == 0 {
+		return nil
+	}
+
+	day := (int(localStart.Weekday()) + 6) % 7 // Monday=0 … Sunday=6
+
+	var windows []string
+	for _, h := range active {
+		if dayFromRRULE(h.RecurrenceRule) != day {
+			continue
+		}
+		openMin := wallClockMinutes(h.OpenTime)
+		closeMin := wallClockMinutes(h.CloseTime)
+		if closeMin <= openMin {
+			continue
+		}
+		if startMin >= openMin && endMin <= closeMin {
+			return nil
+		}
+		windows = append(windows, formatMinutes(openMin)+"-"+formatMinutes(closeMin))
+	}
+
+	if len(windows) == 0 {
+		return fmt.Errorf("branch is closed on %s", dayNames[day])
+	}
+	return fmt.Errorf("appointment %s-%s is outside branch hours on %s (%s)",
+		formatMinutes(startMin), formatMinutes(endMin), dayNames[day], strings.Join(windows, ", "))
 }
 
 // PractitionerBranch
@@ -611,6 +881,10 @@ func (s *BookingService) CreateAppointment(ctx context.Context, input model.Appo
 	startAt := parseTime(input.ScheduledStart)
 	endAt := parseTime(input.ScheduledEnd)
 
+	if err := s.validateWithinBranchHours(ctx, tctx.BranchID, startAt, endAt); err != nil {
+		return nil, err
+	}
+
 	notes := ""
 	if input.Note != nil {
 		notes = *input.Note
@@ -857,6 +1131,10 @@ func (s *BookingService) RescheduleAppointment(ctx context.Context, id string, i
 	endAt, err := time.Parse(time.RFC3339, input.ScheduledEnd)
 	if err != nil {
 		return nil, fmt.Errorf("invalid scheduled_end: %w", err)
+	}
+
+	if err := s.validateWithinBranchHours(ctx, existing.BranchID, startAt, endAt); err != nil {
+		return nil, err
 	}
 
 	now := time.Now()
@@ -1158,14 +1436,17 @@ func rruleFromDay(d int) string {
 }
 
 func dayFromRRULE(rrule string) int {
-	if len(rrule) < 3 {
+	// Only read the BYDAY part: scanning the whole rule would match "WE"
+	// inside "FREQ=WEEKLY".
+	const marker = "BYDAY="
+	idx := strings.Index(rrule, marker)
+	if idx < 0 {
 		return 0
 	}
-	for i := 0; i < len(rrule)-1; i++ {
-		code := rrule[i : i+2]
-		if d, ok := rruleToDay[code]; ok {
-			return d
-		}
+	byday := strings.SplitN(rrule[idx+len(marker):], ",", 2)[0]
+	byday = strings.TrimSpace(byday)
+	if d, ok := rruleToDay[byday]; ok {
+		return d
 	}
 	return 0
 }

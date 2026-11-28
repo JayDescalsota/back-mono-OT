@@ -191,6 +191,32 @@ CREATE TABLE IF NOT EXISTS booking_soap_notes (
 
 CREATE INDEX idx_booking_soap_notes_appointment ON booking_soap_notes (appointment_id);
 
+-- Date-specific branch hours (holidays, special openings). One row per
+-- branch/date; overrides the weekly branch hours for that day.
+CREATE TABLE IF NOT EXISTS booking_branch_special_hours (
+    id UUID PRIMARY KEY,
+    tenant_id UUID NOT NULL,
+    branch_id UUID NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    is_yearly BOOLEAN NOT NULL DEFAULT false,
+    special_date DATE NOT NULL,
+    is_closed BOOLEAN NOT NULL DEFAULT false,
+    open_time TIMESTAMPTZ,
+    close_time TIMESTAMPTZ,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID,
+    created_action TEXT NOT NULL DEFAULT '',
+    updated_by UUID,
+    updated_action TEXT NOT NULL DEFAULT '',
+
+    UNIQUE (branch_id, special_date)
+);
+
+CREATE INDEX idx_booking_branch_special_hours_branch ON booking_branch_special_hours (branch_id, special_date);
+
 -- Appointment type lookup for the New Appointment modal.
 CREATE TABLE booking_appointment_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
