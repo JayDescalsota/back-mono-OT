@@ -443,7 +443,7 @@ func (s *BookingService) validateWithinBranchHours(ctx context.Context, branchID
 
 	var windows []string
 	for _, h := range active {
-		if dayFromRRULE(h.RecurrenceRule) != day {
+		if !ruleCoversDay(h.RecurrenceRule, day) {
 			continue
 		}
 		openMin := wallClockMinutes(h.OpenTime)
@@ -1435,20 +1435,34 @@ func rruleFromDay(d int) string {
 	return fmt.Sprintf("FREQ=WEEKLY;BYDAY=%s", code)
 }
 
-func dayFromRRULE(rrule string) int {
-	// Only read the BYDAY part: scanning the whole rule would match "WE"
-	// inside "FREQ=WEEKLY".
+// daysFromRRULE expands a BYDAY list into weekday indexes (Monday = 0 …
+// Sunday = 6). A single row can cover several days, e.g.
+// "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR".
+func daysFromRRULE(rrule string) []int {
 	const marker = "BYDAY="
 	idx := strings.Index(rrule, marker)
 	if idx < 0 {
-		return 0
+		return nil
 	}
-	byday := strings.SplitN(rrule[idx+len(marker):], ",", 2)[0]
-	byday = strings.TrimSpace(byday)
-	if d, ok := rruleToDay[byday]; ok {
-		return d
+	var out []int
+	for _, code := range strings.Split(rrule[idx+len(marker):], ",") {
+		if d, ok := rruleToDay[strings.TrimSpace(code)]; ok {
+			out = append(out, d)
+		}
 	}
-	return 0
+	return out
+}
+
+// ruleCoversDay reports whether a branch-hours row applies to a weekday.
+// Matching must read the whole BYDAY list — scanning the rule for a code
+// would also match "WE" inside "FREQ=WEEKLY".
+func ruleCoversDay(rrule string, day int) bool {
+	for _, d := range daysFromRRULE(rrule) {
+		if d == day {
+			return true
+		}
+	}
+	return false
 }
 
 func parseTime(s string) time.Time {
